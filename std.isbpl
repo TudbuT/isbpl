@@ -49,6 +49,11 @@ native func throw
 # storelength
 native func stlen
 
+native func eq
+native func gt
+native func lt
+native func not
+
 "char" mktype =TYPE_CHAR
 "int" mktype =TYPE_INT
 "file" mktype =TYPE_FILE
@@ -127,7 +132,7 @@ func acopy {
     =arr1
 
     0 =i
-    while (i len st) (i 1 + =i) {
+    while (i len lt) (i 1 + =i) {
         arr2 i idx2 + (arr1 i idx1 + aget) aput
     }
 }
@@ -153,7 +158,7 @@ func strsplit {
     0 =i
     0 =j
     "" 0 anew =sequences
-    while (i str alen st) (i 1 + =1) {
+    while (i str alen lt) (i 1 + =1) {
         str i aget =chr
         splitter 0 aget =spl
         while (chr spl eq) (j 1 + =j) {
@@ -170,7 +175,7 @@ func strsplit {
 func puts {
     _string =str
     0 =i
-    while (i str alen st) (i 1 + =i) {
+    while (i str alen lt) (i 1 + =i) {
         str i aget putchar
     }
 }
