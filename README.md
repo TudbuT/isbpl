@@ -1,4 +1,4 @@
 # isbpl
 Improved Stack-Based Programming Language
 
-Incomplete, non-compilable!
+Incomplete, not currently compilable!
