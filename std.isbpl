@@ -53,6 +53,13 @@ native func eq
 native func gt
 native func lt
 native func not
+native func +
+native func -
+native func /
+native func *
+native func **
+native func %
+native func ^
 
 "char" mktype =TYPE_CHAR
 "int" mktype =TYPE_INT
