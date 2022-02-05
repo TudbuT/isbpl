@@ -1,6 +1,7 @@
 native func alen
 native func aget
 native func aput
+native func anew
 native func _array
 func __array {
     "NotImplemented" "Not implemented" throw
@@ -40,10 +41,12 @@ native func putchar
 native func read
 native func type
 native func mktype
+# call a dynamically computed function
 native func call
 native func typename
 native func throw
 # try and catch are keywords, not functions
+# storelength
 native func stlen
 
 "char" mktype =TYPE_CHAR
@@ -59,7 +62,7 @@ func _string {
     =object
 
     object ischar if {
-        0 _char stlen ~ 0 _char _array =object
+        0 _char 1 anew =object
     }
     object isint if {
         itos =object
@@ -83,12 +86,6 @@ func isstring {
     isarray
 }
 
-func mkarr {
-    =o
-    =size
-    o stlen 4 + size * 4 + ~ _array
-}
-
 func itos {
     ntos
 }
@@ -105,6 +102,7 @@ func dtos {
     ntos
 }
 
+# Number to string
 func ntos {
     "" =s
     =n
@@ -119,6 +117,7 @@ func ntos {
     s
 }
 
+# Copy array
 func acopy {
     # bind args
     =len
@@ -138,16 +137,10 @@ func strconcat {
     _string =str2
     _string =str1
     
-    str1 alen str2 alen 0 _char mkarr = str
-
-    0 =i
-    while (str1 alen i gt) (i 1 + =i) {
-        str i (str1 i aget) aput
-    }
-    0 =i
-    while (str2 alen i gt) (i 1 + =i) {
-        str (i str1 alen +) (str2 i aget) aput
-    }
+    0 _char str1 alen str2 alen anew = str
+    
+    str1 str 0 0         str1 alen acopy
+    str2 str 0 str1 alen str2 alen acopy
 
     str
 }
@@ -159,14 +152,14 @@ func strsplit {
 
     0 =i
     0 =j
-    "" 0 mkarr =sequences
+    "" 0 anew =sequences
     while (i str alen st) (i 1 + =1) {
         str i aget =chr
         splitter 0 aget =spl
         while (chr spl eq) (j 1 + =j) {
             (str i j + aget) (splitter j aget) eq not if {
                 sequences =oldsq
-                "" (seq dup =lseq 1 + dup =seq) mkarr =sequences
+                "" (seq dup =lseq 1 + dup =seq) anew =sequences
                 oldsq sequences 0 0 oldsq alen acopy
                 sequences lseq 
             }
