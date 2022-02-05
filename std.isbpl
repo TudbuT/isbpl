@@ -182,7 +182,7 @@ func strsplit {
         "" =sequence
         1 neg =j
         while (j 1 + =j) (chr spl eq) {
-            (str i j + aget) (splitter j aget) eq not if {
+            (str i j + aget dup =chr) (splitter j aget dup =spl) eq not if {
                 sequences =oldsq
                 "" (sequences alen dup =seq 1 +) anew =sequences
                 oldsq sequences 0 0 oldsq alen acopy
