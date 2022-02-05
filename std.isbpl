@@ -61,6 +61,10 @@ native func **
 native func %
 native func ^
 
+native func dup
+native func pop
+native func swap
+
 "char" mktype =TYPE_CHAR
 "int" mktype =TYPE_INT
 "file" mktype =TYPE_FILE
