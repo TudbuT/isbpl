@@ -1,0 +1,26 @@
+
+"" =insns
+
+func main { # entry point returning int
+    =args # put arg array into args var
+    args 0 aget =file
+
+    # Start compile
+    filename _file compile
+
+    0
+}
+
+func append {
+    =str
+    insns str strconcat "\n" strconcat =insns
+}
+
+func pushElement {
+    # bind args
+    =x
+    =type
+
+    "PUSH " type _string_string  strconcat append
+    "PUSH " x strconcat append
+}

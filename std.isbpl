@@ -1,0 +1,183 @@
+native func alen
+native func aget
+native func aput
+native func _array
+func __array {
+    "NotImplemented" "Not implemented" throw
+}
+
+native func _char
+native func _int
+native func _file
+native func _float
+native func _long
+native func _double
+
+func __char {
+    _char
+}
+func __int {
+    _int
+}
+func __file {
+    _file
+}
+native func __float
+func __long {
+    _long
+}
+native func __double
+
+native func ischar
+native func isint
+native func isfloat
+native func islong
+native func isdouble
+
+native func stop
+native func include
+native func putchar
+native func read
+native func type
+native func mktype
+native func call
+native func typename
+native func throw
+# try and catch are keywords, not functions
+native func stlen
+
+"char" mktype =TYPE_CHAR
+"int" mktype =TYPE_INT
+"file" mktype =TYPE_FILE
+"float" mktype =TYPE_FLOAT
+"long" mktype =TYPE_LONG
+"double" mktype =TYPE_DOUBLE
+"array" mktype =TYPE_ARRAY
+
+"string" mktype =TYPE_STRING
+func _string {
+    =object
+
+    object ischar if {
+        0 _char stlen ~ 0 _char _array =object
+    }
+    object isint if {
+        itos =object
+    }
+    object isfloat if {
+        ftoi =object
+    }
+    object islong if {
+        ltoi =object
+    }
+    object isdouble if {
+        dtoi =object
+    }
+    
+    object
+}
+func __string {
+    _string
+}
+func isstring {
+    isarray
+}
+
+func mkarr {
+    =o
+    =size
+    o stlen 4 + size * 4 + ~ _array
+}
+
+func itos {
+    ntos
+}
+
+func ltos {
+    ntos
+}
+
+func ftos {
+    ntos
+}
+
+func dtos {
+    ntos
+}
+
+func ntos {
+    "" =s
+    =n
+
+    n type =thetype
+
+    while n 0 eq not {
+        n (n 10 % dup =x) - =n
+        s (n '0' + _char) strconcat =s
+    }
+
+    s
+}
+
+func acopy {
+    # bind args
+    =len
+    =idx2
+    =idx1
+    =arr2
+    =arr1
+
+    0 =i
+    while (i len st) (i 1 + =i) {
+        arr2 i idx2 + (arr1 i idx1 + aget) aput
+    }
+}
+
+func strconcat {
+    # bind args
+    _string =str2
+    _string =str1
+    
+    str1 alen str2 alen 0 _char mkarr = str
+
+    0 =i
+    while (str1 alen i gt) (i 1 + =i) {
+        str i (str1 i aget) aput
+    }
+    0 =i
+    while (str2 alen i gt) (i 1 + =i) {
+        str (i str1 alen +) (str2 i aget) aput
+    }
+
+    str
+}
+
+func strsplit {
+    # bind args
+    _string =str
+    _string =splitter
+
+    0 =i
+    0 =j
+    "" 0 mkarr =sequences
+    while (i str alen st) (i 1 + =1) {
+        str i aget =chr
+        splitter 0 aget =spl
+        while (chr spl eq) (j 1 + =j) {
+            (str i j + aget) (splitter j aget) eq not if {
+                sequences =oldsq
+                "" (seq dup =lseq 1 + dup =seq) mkarr =sequences
+                oldsq sequences 0 0 oldsq alen acopy
+                sequences lseq 
+            }
+        }
+    }
+}
+
+func puts {
+    _string =str
+    0 =i
+    while (i str alen st) (i 1 + =i) {
+        str i aget putchar
+    }
+}
