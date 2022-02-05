@@ -112,12 +112,20 @@ func ntos {
     "" =s
     =n
 
+    n 0 lt dup if { n neg =n 1 =negative } =negative
     n type =thetype
 
-    while n 0 eq not {
+    while n 1 lt not {
         n (n 10 % dup =x) - =n
         s (n '0' + _char) strconcat =s
     }
+    1 =steps
+    while n 0 eq not {
+        n (n (1 (steps dup 10 * =steps) /) % dup =x) - =n
+        s (x '0' + _char) strconcat =s
+    }
+
+    negative if { "-" s strconcat =s }
 
     s
 }
