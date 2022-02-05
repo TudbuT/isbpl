@@ -176,21 +176,23 @@ func strsplit {
 
     1 neg =i
     "" 0 anew =sequences
+    "" =sequence
     while (i 1 + =1) (i str alen lt) {
         str i aget =chr
         splitter 0 aget =spl
-        "" =sequence
+        sequence chr strconcat =sequence
         1 neg =j
         while (j 1 + =j) (chr spl eq) {
-            (str i j + aget dup =chr) (splitter j aget dup =spl) eq not if {
+            j splitter alen eq if {
                 sequences =oldsq
                 "" (sequences alen dup =seq 1 +) anew =sequences
                 oldsq sequences 0 0 oldsq alen acopy
                 sequences seq sequence aput
+                "" =sequence
+                stop
             }
-            else {
-                sequence chr strconcat =sequence
-            }
+            str i j + aget dup =chr
+            splitter j aget dup =spl
         }
     }
 
