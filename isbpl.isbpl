@@ -3,12 +3,85 @@
 
 func main { # entry point returning int
     =args # put arg array into args var
-    args 0 aget =file
+    args 0 aget =filename
 
     # Start compile
     filename _file compile
 
     0
+}
+
+func compile {
+    =file
+
+    # read & split content
+    0 _char (file flength) anew "\n" strsplit =content
+    
+    1 neg =i
+    # preprocess string
+    while (i 1 + =i) (i content alen lt) {
+        content i aget =ln
+        # remove tabs/spaces
+        while (ln 0 aget dup) eq ' ' eq '\t' or {
+            # remove first character
+            ln 1 ln alen strsub =ln
+        }
+        # remove comments
+        1 neg =j
+        while (j 1 + =j) (j ln alen lt) {
+            (ln j aget dup =c dup) ('\"' eq '\'' eq or) if {
+                j 1 + =j
+                while (ln j aget dup =c dup) ('\"' eq '\'' eq or) not {
+                    j (c '\\' eq if { 2 } else { 1 }) + =j
+                }
+            }
+            c '#' eq if {
+                ln 0 j strsub
+                1 stop
+            }
+        }
+    }
+
+    # join content
+    content " " strjoin " " strsplit =content
+
+    content 1 mkcode
+}
+
+func mkcode {
+    =allowfunc
+    =content
+
+    1 neg =i
+    0 dup =isnative
+      dup =funcname
+      dup =definefunc
+      dup =level
+      pop
+    while (i 1 + =i) (i content alen lt) {
+        content i aget =keyword
+        keyword "" eq not if {
+            allowfunc if {
+                funcname 0 eq not keyword "{" eq and if {
+                    i (content i 1 + content alen strsub 0 mkcode) + =i
+                    content i aget =keyword
+                    2 stop
+                }
+                definefunc if {
+                    keyword =funcname
+                }
+                keyword "func" eq =definefunc
+                keyword "native" eq =native 
+            }
+            keyword '{' if { level 1 + =level }
+            keyword '}' if { level 1 - =level }
+            keyword 'if' if {
+            }
+        }
+        level 1 neg eq if { 1 stop }
+    }
+
+    i
 }
 
 func append {
@@ -21,6 +94,6 @@ func pushElement {
     =x
     =type
 
-    "PUSH " type _string_string  strconcat append
+    "PUSH " type _string strconcat append
     "PUSH " x strconcat append
 }

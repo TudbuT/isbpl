@@ -39,11 +39,15 @@ native func stop
 native func include
 native func putchar
 native func read
+native func flength
+native func write
 native func type
 native func mktype
 # call a dynamically computed function
 native func call
 native func typename
+native func istype
+native func settype
 native func throw
 # try and catch are keywords, not functions
 # storelength
@@ -53,6 +57,8 @@ native func eq
 native func gt
 native func lt
 native func not
+native func or
+native func and
 native func +
 native func -
 native func /
@@ -161,7 +167,7 @@ func strconcat {
     _string =str2
     _string =str1
     
-    0 _char str1 alen str2 alen anew = str
+    0 _char str1 alen str2 alen + anew =str
     
     str1 str 0 0         str1 alen acopy
     str2 str 0 str1 alen str2 alen acopy
@@ -171,13 +177,13 @@ func strconcat {
 
 func strsplit {
     # bind args
-    _string =str
     _string =splitter
+    _string =str
 
     1 neg =i
     "" 0 anew =sequences
     "" =sequence
-    while (i 1 + =1) (i str alen lt) {
+    while (i 1 + =i) (i str alen lt) {
         str i aget =chr
         splitter 0 aget =spl
         sequence chr strconcat =sequence
@@ -189,7 +195,7 @@ func strsplit {
                 oldsq sequences 0 0 oldsq alen acopy
                 sequences seq sequence aput
                 "" =sequence
-                stop
+                2 stop
             }
             str i j + aget dup =chr
             splitter j aget dup =spl
@@ -197,6 +203,31 @@ func strsplit {
     }
 
     sequences
+}
+
+func strjoin {
+    # bind args
+    _string =joiner
+    _array =arr
+
+    1 neg =i
+    "" =s
+    while (i 1 + =i) (i arr alen lt) {
+        s arr i aget joiner strconcat strconcat =s
+    }
+
+    s
+}
+
+func strsub {
+    # bind args
+    _int =pos2
+    _int =pos1
+    _string =string
+
+    pos2 pos1 - =length
+
+    (o _char length anew dup) string swap pos1 0 length acopy
 }
 
 func puts {
