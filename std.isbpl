@@ -42,14 +42,15 @@ native flength
 native write
 native type
 native mktype
-# call a dynamically computed function
+# "call a dynamically computed function" pop
 native call
 native typename
 native istype
 native settype
-# try and catch are keywords, not functions
+# "try and catch are keywords, not functions" pop
 native throw
-# storelength
+native exit
+# "storelength" pop
 native stlen
 
 native eq
@@ -69,6 +70,14 @@ native ^
 native dup
 native pop
 native swap
+
+func ++ { 1 + }
+func -- { 1 - }
+
+# "this looks so wrong" pop
+func ( { }
+func ) { }
+func # { }
 
 "char" mktype =TYPE_CHAR
 "int" mktype =TYPE_INT
@@ -123,7 +132,7 @@ func dtos {
     ntos
 }
 
-# Number to string
+# "Number to string" pop
 func ntos {
     "" =s
     =n
@@ -131,24 +140,23 @@ func ntos {
     n 0 lt dup if { n neg =n 1 =negative } =negative
     n type =thetype
 
-    while n 1 lt not {
-        n (n 10 % dup =x) - =n
-        s (n '0' + _char) strconcat =s
+    while { n 1 lt not } {
+        n ( n 10 % dup =x ) - =n
+        s ( n '0' + _char ) strconcat =s
     }
     1 =steps
-    while n 0 eq not {
-        n (n (1 (steps dup 10 * =steps) /) % dup =x) - =n
-        s (x '0' + _char) strconcat =s
+    while { n 0 eq not } {
+        n ( n ( 1 ( steps dup 10 * =steps ) / ) % dup =x ) - =n
+        s ( x '0' + _char ) strconcat =s
     }
 
-    negative if { "-" s strconcat =s }
 
     s
 }
 
-# Copy array
+# "Copy array" pop
 func acopy {
-    # bind args
+    # "bind args" pop
     =len
     =idx2
     =idx1
@@ -156,13 +164,13 @@ func acopy {
     =arr1
 
     1 neg =i
-    while (i 1 + =i) (i len lt) {
-        arr2 i idx2 + (arr1 i idx1 + aget) aput
+    while { ( i 1 + =i ) ( i len lt ) } {
+        arr2 i idx2 + ( arr1 i idx1 + aget ) aput
     }
 }
 
 func strconcat {
-    # bind args
+    # "bind args" pop
     _string =str2
     _string =str1
     
@@ -175,22 +183,22 @@ func strconcat {
 }
 
 func strsplit {
-    # bind args
+    # "bind args" pop
     _string =splitter
     _string =str
 
     1 neg =i
     "" 0 anew =sequences
     "" =sequence
-    while (i 1 + =i) (i str alen lt) {
+    while { ( i 1 + =i ) ( i str alen lt ) } {
         str i aget =chr
         splitter 0 aget =spl
         sequence chr strconcat =sequence
         1 neg =j
-        while (j 1 + =j) (chr spl eq) {
+        while { ( j 1 + =j ) ( chr spl eq ) } {
             j splitter alen eq if {
                 sequences =oldsq
-                "" (sequences alen dup =seq 1 +) anew =sequences
+                "" ( sequences alen dup =seq 1 + ) anew =sequences
                 oldsq sequences 0 0 oldsq alen acopy
                 sequences seq sequence aput
                 "" =sequence
@@ -205,13 +213,13 @@ func strsplit {
 }
 
 func strjoin {
-    # bind args
+    # "bind args" pop
     _string =joiner
     _array =arr
 
     1 neg =i
     "" =s
-    while (i 1 + =i) (i arr alen lt) {
+    while { ( i 1 + =i ) ( i arr alen lt ) } {
         s arr i aget joiner strconcat strconcat =s
     }
 
@@ -219,20 +227,20 @@ func strjoin {
 }
 
 func strsub {
-    # bind args
+    # "bind args" pop
     _int =pos2
     _int =pos1
     _string =string
 
     pos2 pos1 - =length
 
-    (o _char length anew dup) string swap pos1 0 length acopy
+    ( o _char length anew dup ) string swap pos1 0 length acopy
 }
 
 func puts {
     _string =str
     1 neg =i
-    while (i 1 + =i) (i str alen lt) {
+    while { ( i 1 + =i ) ( i str alen lt ) } {
         str i aget putchar
     }
 }

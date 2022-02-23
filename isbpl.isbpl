@@ -1,14 +1,60 @@
 def insns
 
-func main { # entry point returning int
+func main { # "entry point returning int" pop
     def insns filename
-    =args # put arg array into args var
+    =args # "put arg array into args var" pop
     args 0 aget =filename
 
-    # Start compile
+    # "Start compile" pop
     filename _file compile
 
     0
+}
+
+def ptr 0 =ptr
+
+# "function to fail the compiler due to an oversight by isbpl devs" pop
+func internal_error {
+    "internal_error\n" puts
+    # "arg is on stack, no need for variables etc" pop
+    "\n" strconcat puts
+    2 exit
+}
+
+func is_space {
+    # "each line: dup-d or-d -> or-d dup-d" pop
+         dup  " " eq
+    swap dup "\n" eq or
+    swap dup "\r" eq or
+    swap dup "\t" eq or
+    swap dup   "" eq or
+    # "dup-d or-d -> or-d dup-d -> or-d" pop
+    swap pop swap
+}
+
+func read_string {
+    def s "" =s
+    def insn
+    
+    while { 1 } {
+        insns ptr aget =insn
+        
+    }
+}
+
+# "function to read a block of insns" pop
+func read_block {
+    insns ptr aget dup # "dup the insn for later use" pop ( "{" eq not if {
+        "ERROR: read_block called with invalid ptr" internal_error
+    } )
+    def insn =insn # "insn was dup'd" pop
+
+    insn is_space not if {
+        # "if the insn is anything useful" pop
+        insn 0 aget '"' eq if { read_string }
+    }
+    
+    ptr dup ++ =ptr
 }
 
 func compile {
@@ -20,25 +66,25 @@ func compile {
     def c
     =file
 
-    # read & split content
-    0 _char (file flength) anew "\n" strsplit =content
+    # "read & split content" pop
+    0 _char ( file flength ) anew "\n" strsplit =content
     
     1 neg =i
-    # preprocess string
-    while (i 1 + =i) (i content alen lt) {
+    # "preprocess string" pop
+    while { ( i 1 + =i ) ( i content alen lt ) } {
         content i aget =ln
-        # remove tabs/spaces
-        while (ln 0 aget dup) eq ' ' eq '\t' or {
-            # remove first character
+        # "remove tabs/spaces" pop
+        while { ( ln 0 aget dup ) eq ' ' eq '\t' or } {
+            # "remove first character" pop
             ln 1 ln alen strsub =ln
         }
-        # remove comments
+        # "remove comments" pop
         1 neg =j
-        while (j 1 + =j) (j ln alen lt) {
-            (ln j aget dup =c dup) ('\"' eq '\'' eq or) if {
+        while { ( j 1 + =j ) ( j ln alen lt ) } {
+            ( ln j aget dup =c dup ) ( '\"' eq '\'' eq or ) if {
                 j 1 + =j
-                while (ln j aget dup =c dup) ('\"' eq '\'' eq or) not {
-                    j (c '\\' eq if { 2 } else { 1 }) + =j
+                while { ( ln j aget dup =c dup ) ( '\"' eq '\'' eq or ) not } {
+                    j ( c '\\' eq if { 2 } else { 1 } ) + =j
                 }
             }
             c '#' eq if {
@@ -48,7 +94,7 @@ func compile {
         }
     }
 
-    # join content
+    # "join content" pop
     content " " strjoin " " strsplit =content
 
     content 1 mkcode
@@ -69,12 +115,12 @@ func mkcode {
       dup =definefunc
       dup =level
       pop
-    while (i 1 + =i) (i content alen lt) {
+    while { ( i 1 + =i ) ( i content alen lt ) } {
         content i aget =keyword
         keyword "" eq not if {
             allowfunc if {
                 funcname 0 eq not keyword "{" eq and if {
-                    i (content i 1 + content alen strsub 0 mkcode) + =i
+                    i ( content i 1 + content alen strsub 0 mkcode ) + =i
                     content i aget =keyword
                     2 stop
                 }
@@ -96,15 +142,5 @@ func mkcode {
 }
 
 func append {
-    =str
-    insns str strconcat "\n" strconcat =insns
-}
-
-func pushElement {
-    # bind args
-    =x
-    =type
-
-    "PUSH " type _string strconcat append
-    "PUSH " x strconcat append
+    cmp swap "\n" strconcat strconcat =cmp
 }
