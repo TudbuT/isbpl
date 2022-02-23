@@ -1,7 +1,7 @@
-
-"" =insns
+def insns
 
 func main { # entry point returning int
+    def insns filename
     =args # put arg array into args var
     args 0 aget =filename
 
@@ -12,6 +12,12 @@ func main { # entry point returning int
 }
 
 func compile {
+    def file
+    def content
+    def i
+    def ln
+    def j
+    def c
     =file
 
     # read & split content
@@ -49,6 +55,11 @@ func compile {
 }
 
 func mkcode {
+    def allowfunc
+    def content
+    def definefunc
+    def level
+    def i
     =allowfunc
     =content
 

@@ -1,18 +1,18 @@
-native func alen
-native func aget
-native func aput
-native func anew
-native func _array
+native alen
+native aget
+native aput
+native anew
+native _array
 func __array {
     "NotImplemented" "Not implemented" throw
 }
 
-native func _char
-native func _int
-native func _file
-native func _float
-native func _long
-native func _double
+native _char
+native _int
+native _file
+native _float
+native _long
+native _double
 
 func __char {
     _char
@@ -23,59 +23,58 @@ func __int {
 func __file {
     _file
 }
-native func __float
+native __float
 func __long {
     _long
 }
-native func __double
+native __double
 
-native func ischar
-native func isint
-native func isfloat
-native func islong
-native func isdouble
+native ischar
+native isint
+native isfloat
+native islong
+native isdouble
 
-native func stop
-native func include
-native func putchar
-native func read
-native func flength
-native func write
-native func type
-native func mktype
 # "call a dynamically computed function" pop
 # "Please keep in mind that this will throw a native error if" pop
 # "called incorrectly - this means wrong layer parameter will" pop
 # "instantly crash the program." pop
-native func _layer_call
+native _layer_call
 func call {
     0 _layer_call
 }
-native func typename
-native func istype
-native func settype
-native func throw
+native include
+native putchar
+native read
+native flength
+native write
+native type
+native mktype
+native typename
+native istype
+native settype
 # try and catch are keywords, not functions
+native throw
 # storelength
-native func stlen
+native stlen
 
-native func eq
-native func gt
-native func lt
-native func not
-native func or
-native func and
-native func +
-native func -
-native func /
-native func *
-native func **
-native func %
-native func ^
+native eq
+native gt
+native lt
+native not
+native or
+native and
+native +
+native -
+native /
+native *
+native **
+native %
+native ^
 
-native func dup
-native func pop
-native func swap
+native dup
+native pop
+native swap
 
 "char" mktype =TYPE_CHAR
 "int" mktype =TYPE_INT
