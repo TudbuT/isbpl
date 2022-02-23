@@ -43,8 +43,14 @@ native func flength
 native func write
 native func type
 native func mktype
-# call a dynamically computed function
-native func call
+# "call a dynamically computed function" pop
+# "Please keep in mind that this will throw a native error if" pop
+# "called incorrectly - this means wrong layer parameter will" pop
+# "instantly crash the program." pop
+native func _layer_call
+func call {
+    0 _layer_call
+}
 native func typename
 native func istype
 native func settype
@@ -237,3 +243,46 @@ func puts {
         str i aget putchar
     }
 }
+
+func anewput {
+    def size =size
+    def arr size anew =arr
+    
+    def i 0 =i
+    while i size lt {
+        arr swap i swap aput
+        i 1 + =i
+    }
+
+    arr areverse
+}
+
+func areverse {
+    def arr =arr
+    def new arr alen anew =new
+
+    def i arr alen 1 - =i
+    def j 0 =j
+    while i 0 lt not {
+        new j arr i aget aput
+        j 1 + =j
+        i 1 - =i
+    }
+
+    new
+}
+
+func inc {
+    def varname =varname
+    ( varname 1 _layer_call ) # "Get var" pop
+        1 + # "Increment" pop
+        ( "=" varname strconcat 1 _layer_call ) # "Store var" pop
+}
+
+func dec {
+    def varname =varname
+    ( varname 1 _layer_call ) # "Get var" pop
+        1 - # "Decrement" pop
+        ( "=" varname strconcat 1 _layer_call ) # "Store var" pop
+}
+
