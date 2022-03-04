@@ -35,14 +35,17 @@ native isfloat
 native islong
 native isdouble
 
-# "call a dynamically computed function" pop
-# "Please keep in mind that this will throw a native error if" pop
-# "called incorrectly - this means wrong layer parameter will" pop
-# "instantly crash the program." pop
+"call a dynamically computed function" #
+"Please keep in mind that this will throw a native error if" #
+"called incorrectly - this means wrong layer parameter will" #
+"instantly crash the program." #
 native _layer_call
 func call {
     0 _layer_call
 }
+"This returns the last word as a string, from an index." # 
+"index has to be <=15, index 0 is this call" #
+native _last_word
 native include
 native putchar
 native read
@@ -51,18 +54,20 @@ native write
 native type
 native mktype
 native typename
+native getos
 native istype
 native settype
-# "try and catch are keywords, not functions" pop
+"try and catch are keywords, not functions" #
 native throw
 native exit
-# "storelength" pop
+"storelength" #
 native stlen
 
 native eq
 native gt
 native lt
 native not
+native neg
 native or
 native and
 native +
@@ -80,22 +85,23 @@ native swap
 func ++ { 1 + }
 func -- { 1 - }
 
-# "this looks so wrong" pop
+"this looks so wrong" #
 func ( { }
 func ) { }
-func # { }
+func # { pop }
+func ; { -1 }
 
-"char" mktype =TYPE_CHAR
-"int" mktype =TYPE_INT
-"file" mktype =TYPE_FILE
-"float" mktype =TYPE_FLOAT
-"long" mktype =TYPE_LONG
-"double" mktype =TYPE_DOUBLE
-"array" mktype =TYPE_ARRAY
+def TYPE_CHAR "char" mktype =TYPE_CHAR
+def TYPE_INT "int" mktype =TYPE_INT
+def TYPE_FILE "file" mktype =TYPE_FILE
+def TYPE_FLOAT "float" mktype =TYPE_FLOAT
+def TYPE_LONG "long" mktype =TYPE_LONG
+def TYPE_DOUBLE "double" mktype =TYPE_DOUBLE
+def TYPE_ARRAY "array" mktype =TYPE_ARRAY
 
-"string" mktype =TYPE_STRING
+def TYPE_STRING "string" mktype =TYPE_STRING
 func _string {
-    =object
+    def object =object
 
     object ischar if {
         0 _char 1 anew =object
@@ -138,49 +144,66 @@ func dtos {
     ntos
 }
 
-# "Number to string" pop
+"Number to string" #
 func ntos {
-    "" =s
-    =n
+    def s "" =s
+    def n =n
 
-    n 0 lt dup if { n neg =n 1 =negative } =negative
-    n type =thetype
+    def negative n 0 lt dup if { n neg =n 1 =negative } =negative
+    def thetype n type =thetype
 
     while { n 1 lt not } {
         n ( n 10 % dup =x ) - =n
         s ( n '0' + _char ) strconcat =s
     }
-    1 =steps
+    def steps 1 =steps
     while { n 0 eq not } {
         n ( n ( 1 ( steps dup 10 * =steps ) / ) % dup =x ) - =n
         s ( x '0' + _char ) strconcat =s
     }
 
+    negative if {
+        n neg =n
+    }
 
     s
 }
 
-# "Copy array" pop
-func acopy {
-    # "bind args" pop
-    =len
-    =idx2
-    =idx1
-    =arr2
-    =arr1
+func ston {
+    def s =s "bind string" #
+    def n 0 =n "the number to return" #
+    def negative def idx s 0 aget '-' eq dup =idx =negative
+    
+    while { idx s alen lt } {
+        def chr s idx aget =chr
+        n ( chr ( 10 ( s alen idx - 1 - ) ** ) + =n
+        idx inc
+    }
 
-    1 neg =i
+    n
+}
+
+"Copy array" #
+func acopy {
+    "bind args" #
+    def len =len
+    def idx2 =idx2
+    def idx1 =idx1
+    def arr2 =arr2
+    def arr1 =arr1
+
+    def i 1 neg =i
     while { ( i 1 + =i ) ( i len lt ) } {
         arr2 i idx2 + ( arr1 i idx1 + aget ) aput
     }
 }
 
 func strconcat {
-    # "bind args" pop
-    _string =str2
-    _string =str1
+    "bind args" #
+    def str2 _string =str2
+    def str1 _string =str1
     
-    0 _char str1 alen str2 alen + anew =str
+    def str 0 _char str1 alen str2 alen + anew =str
     
     str1 str 0 0         str1 alen acopy
     str2 str 0 str1 alen str2 alen acopy
@@ -189,21 +212,21 @@ func strconcat {
 }
 
 func strsplit {
-    # "bind args" pop
-    _string =splitter
-    _string =str
+    "bind args" #
+    def splitter _string =splitter
+    def str _string =str
 
     1 neg =i
-    "" 0 anew =sequences
-    "" =sequence
+    def sequences "" 0 anew =sequences
+    def sequence "" =sequence
     while { ( i 1 + =i ) ( i str alen lt ) } {
-        str i aget =chr
-        splitter 0 aget =spl
+        def chr str i aget =chr
+        def spl splitter 0 aget =spl
         sequence chr strconcat =sequence
         1 neg =j
         while { ( j 1 + =j ) ( chr spl eq ) } {
             j splitter alen eq if {
-                sequences =oldsq
+                def oldsq sequences =oldsq
                 "" ( sequences alen dup =seq 1 + ) anew =sequences
                 oldsq sequences 0 0 oldsq alen acopy
                 sequences seq sequence aput
@@ -219,12 +242,12 @@ func strsplit {
 }
 
 func strjoin {
-    # "bind args" pop
-    _string =joiner
-    _array =arr
+    "bind args" #
+    def joiner _string =joiner
+    def arr _array =arr
 
     1 neg =i
-    "" =s
+    def s "" =s
     while { ( i 1 + =i ) ( i arr alen lt ) } {
         s arr i aget joiner strconcat strconcat =s
     }
@@ -233,10 +256,10 @@ func strjoin {
 }
 
 func strsub {
-    # "bind args" pop
-    _int =pos2
-    _int =pos1
-    _string =string
+    "bind args" #
+    def pos2 _int =pos2
+    def pos1 _int =pos1
+    def string _string =string
 
     pos2 pos1 - =length
 
@@ -244,7 +267,7 @@ func strsub {
 }
 
 func puts {
-    _string =str
+    def str _string =str
     1 neg =i
     while { ( i 1 + =i ) ( i str alen lt ) } {
         str i aget putchar
@@ -256,7 +279,7 @@ func anewput {
     def arr size anew =arr
     
     def i 0 =i
-    while i size lt {
+    while { i size lt } {
         arr swap i swap aput
         i 1 + =i
     }
@@ -270,7 +293,7 @@ func areverse {
 
     def i arr alen 1 - =i
     def j 0 =j
-    while i 0 lt not {
+    while { i 0 lt not } {
         new j arr i aget aput
         j 1 + =j
         i 1 - =i
@@ -279,17 +302,75 @@ func areverse {
     new
 }
 
+func strcontains {
+    def check =check "bind check" #
+    def s =s "bind string" #
+
+    def found 0 =found
+    def counter 0 =counter
+    def i 0 =i
+    def j 0 =j
+    while { i s alen lt } {
+        s i aget check j aget eq dup if {
+            counter inc
+        }
+        not if {
+            0 =counter
+        }
+        counter check alen eq if {
+            3 stop
+        }
+        i inc
+    }
+    counter check alen eq
+}
+
+"These functions are magic, they use natives to get recent words and modify the" #
+"variables, do not touch them unless you know exactly what you're doing!" #
 func inc {
-    def varname =varname
-    ( varname 1 _layer_call ) # "Get var" pop
-        1 + # "Increment" pop
-        ( "=" varname strconcat 1 _layer_call ) # "Store var" pop
+    def varname 3 _last_word =varname
+    pop
+    ( varname 1 _layer_call ) "Get var" #
+        1 + "Increment" #
+        ( "=" varname strconcat 1 _layer_call ) "Store var" #
 }
-
 func dec {
-    def varname =varname
-    ( varname 1 _layer_call ) # "Get var" pop
-        1 - # "Decrement" pop
-        ( "=" varname strconcat 1 _layer_call ) # "Store var" pop
+    def varname 3 _last_word =varname
+    pop
+    ( varname 1 _layer_call ) "Get var" #
+        1 - "Decrement" #
+        ( "=" varname strconcat 1 _layer_call ) "Store var" #
 }
 
+func random {
+    getos dup ( "linux" strcontains ) swap ( "macos" strcontains ) or dup if {
+        "/dev/urandom" _file 1 read
+    }
+    not if {
+        "__windows_radom" call
+    }
+}
+
+func strlowercase {
+    def s =s "bind string" #
+    def i 0 =i
+    while { i s alen lt } {
+        def char s i aget =char
+        char 64 gt char 91 lt and if {
+            s i char 32 + aput
+        }
+        i inc
+    }
+}
+
+func struppercase {
+    def s =s "bind string" #
+    def i 0 =i
+    while { i s alen lt } {
+        def char s i aget =char
+        char 89 gt char 123 lt and if {
+            s i char 32 - aput
+        }
+        i inc
+    }
+}
