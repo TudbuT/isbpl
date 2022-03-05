@@ -103,9 +103,14 @@ func _string {
         dtoi =object
     }
 
+    object isarray if {
+        object TYPE_STRING settype =object
+    }
     object isstring not if {
         "IncompatibleTypes" "Incompatible types: " object gettype typename " - string" strconcat strconcat throw
     }
+    
+    object
 }
 func isstring {
     gettype typename "string" eq

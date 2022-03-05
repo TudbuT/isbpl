@@ -360,7 +360,7 @@ public class ISBPL {
                 func = () -> {
                     ISBPLObject s = stack.pop();
                     ISBPLType type = registerType(toJavaString(s));
-                    stack.push(new ISBPLObject(getType("int"), type));
+                    stack.push(new ISBPLObject(getType("int"), type.id));
                 };
                 break;
             case "typename":
@@ -374,6 +374,14 @@ public class ISBPL {
                 func = () -> {
                     ISBPLObject o = stack.pop();
                     stack.push(new ISBPLObject(getType("int"), o.type.id));
+                };
+                break;
+            case "settype":
+                func = () -> {
+                    ISBPLObject i = stack.pop();
+                    ISBPLObject o = stack.pop();
+                    i.checkType(getType("int"));
+                    stack.push(new ISBPLObject(types.get(((int) i.object)), o.object));
                 };
                 break;
             case "throw":
