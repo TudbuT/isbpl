@@ -1,0 +1,8 @@
+native _file
+native isfile
+
+def TYPE_FILE "file" mktype =TYPE_FILE
+
+native read
+native flength
+native write

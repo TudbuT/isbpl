@@ -1,39 +1,29 @@
+native dup
+native pop
+native swap
+
+func # { pop }
+
 native alen
 native aget
 native aput
 native anew
 native _array
-func __array {
-    "NotImplemented" "Not implemented" throw
-}
 
 native _char
+native _byte
 native _int
-native _file
 native _float
 native _long
 native _double
 
-func __char {
-    _char
-}
-func __int {
-    _int
-}
-func __file {
-    _file
-}
-native __float
-func __long {
-    _long
-}
-native __double
-
 native ischar
+native isbyte
 native isint
 native isfloat
 native islong
 native isdouble
+native isarray
 
 "call a dynamically computed function" #
 "Please keep in mind that this will throw a native error if" #
@@ -41,27 +31,21 @@ native isdouble
 "instantly crash the program." #
 native _layer_call
 func call {
-    0 _layer_call
+    1 _layer_call
 }
-"This returns the last word as a string, from an index." # 
-"index has to be <=15, index 0 is this call" #
+"This returns the last word as a string, from an index." #
+"index has to be <16, index 0 is this call" #
 native _last_word
 native include
 native putchar
-native read
-native flength
-native write
-native type
 native mktype
-native typename
 native getos
-native istype
+native typename
+native gettype
 native settype
-"try and catch are keywords, not functions" #
+"try and do are keywords, not functions" #
 native throw
 native exit
-"storelength" #
-native stlen
 
 native eq
 native gt
@@ -78,22 +62,18 @@ native **
 native %
 native ^
 
-native dup
-native pop
-native swap
-
 func ++ { 1 + }
 func -- { 1 - }
 
 "this looks so wrong" #
 func ( { }
 func ) { }
-func # { pop }
-func ; { -1 }
+func ; { }
 
-def TYPE_CHAR "char" mktype =TYPE_CHAR
+"int must be registered first." #
 def TYPE_INT "int" mktype =TYPE_INT
-def TYPE_FILE "file" mktype =TYPE_FILE
+def TYPE_CHAR "char" mktype =TYPE_CHAR
+def TYPE_BYTE "byte" mktype =TYPE_BYTE
 def TYPE_FLOAT "float" mktype =TYPE_FLOAT
 def TYPE_LONG "long" mktype =TYPE_LONG
 def TYPE_DOUBLE "double" mktype =TYPE_DOUBLE
@@ -104,7 +84,11 @@ func _string {
     def object =object
 
     object ischar if {
-        0 _char 1 anew =object
+        1 anew =object
+        object TYPE_STRING settype
+    }
+    object isbyte if {
+        itos =object
     }
     object isint if {
         itos =object
@@ -118,14 +102,13 @@ func _string {
     object isdouble if {
         dtoi =object
     }
-    
-    object
-}
-func __string {
-    _string
+
+    object isstring not if {
+        "IncompatibleTypes" "Incompatible types: " object gettype typename " - string" strconcat strconcat throw
+    }
 }
 func isstring {
-    isarray
+    gettype typename "string" eq
 }
 
 func itos {
@@ -150,7 +133,7 @@ func ntos {
     def n =n
 
     def negative n 0 lt dup if { n neg =n 1 =negative } =negative
-    def thetype n type =thetype
+    def thetype n gettype =thetype
 
     while { n 1 lt not } {
         n ( n 10 % dup =x ) - =n
@@ -173,7 +156,7 @@ func ston {
     def s =s "bind string" #
     def n 0 =n "the number to return" #
     def negative def idx s 0 aget '-' eq dup =idx =negative
-    
+
     while { idx s alen lt } {
         def chr s idx aget =chr
         n ( chr ( 10 ( s alen idx - 1 - ) ** ) + =n
@@ -202,9 +185,9 @@ func strconcat {
     "bind args" #
     def str2 _string =str2
     def str1 _string =str1
-    
+
     def str 0 _char str1 alen str2 alen + anew =str
-    
+
     str1 str 0 0         str1 alen acopy
     str2 str 0 str1 alen str2 alen acopy
 
@@ -267,8 +250,8 @@ func strsub {
 }
 
 func puts {
-    def str _string =str
-    1 neg =i
+    def str _array =str
+    def i 1 neg =i
     while { ( i 1 + =i ) ( i str alen lt ) } {
         str i aget putchar
     }
@@ -277,7 +260,7 @@ func puts {
 func anewput {
     def size =size
     def arr size anew =arr
-    
+
     def i 0 =i
     while { i size lt } {
         arr swap i swap aput
@@ -328,14 +311,14 @@ func strcontains {
 "These functions are magic, they use natives to get recent words and modify the" #
 "variables, do not touch them unless you know exactly what you're doing!" #
 func inc {
-    def varname 3 _last_word =varname
+    def varname 4 _last_word =varname
     pop
     ( varname 1 _layer_call ) "Get var" #
         1 + "Increment" #
         ( "=" varname strconcat 1 _layer_call ) "Store var" #
 }
 func dec {
-    def varname 3 _last_word =varname
+    def varname 4 _last_word =varname
     pop
     ( varname 1 _layer_call ) "Get var" #
         1 - "Decrement" #
@@ -343,8 +326,9 @@ func dec {
 }
 
 func random {
-    getos dup ( "linux" strcontains ) swap ( "macos" strcontains ) or dup if {
-        "/dev/urandom" _file 1 read
+    "file.isbpl" include
+    getos strlowercase dup ( "linux" strcontains ) swap ( "macos" strcontains ) or dup if {
+        "/dev/urandom" _file 0 1 read
     }
     not if {
         "__windows_radom" call
@@ -361,6 +345,7 @@ func strlowercase {
         }
         i inc
     }
+    s
 }
 
 func struppercase {
@@ -373,4 +358,5 @@ func struppercase {
         }
         i inc
     }
+    s
 }

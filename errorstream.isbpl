@@ -1,0 +1,9 @@
+native eputchar
+
+func eputs {
+    def str _string =str
+    1 neg =i
+    while { ( i 1 + =i ) ( i str alen lt ) } {
+    str i aget eputchar
+    }
+}
