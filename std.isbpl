@@ -171,8 +171,7 @@ func stol {
         s rem =s "remove first digit" #
     }
 
-    ne if { n neg =n }
-    n
+    n ( ne 2 * 1 - neg ) _long *
 }
 
 func char { _array 0 aget }
