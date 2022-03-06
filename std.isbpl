@@ -88,19 +88,19 @@ func _string {
         object TYPE_STRING settype
     }
     object isbyte if {
-        itos =object
+        object itos =object
     }
     object isint if {
-        itos =object
+        object itos =object
     }
     object isfloat if {
-        ftoi =object
+        object ftoi =object
     }
     object islong if {
-        ltoi =object
+        object ltoi =object
     }
     object isdouble if {
-        dtoi =object
+        object dtoi =object
     }
 
     object isarray if {
@@ -116,6 +116,14 @@ func isstring {
     gettype typename "string" eq
 }
 
+func stoi {
+    stol _int
+}
+
+func stof {
+    stod _float
+}
+
 func itos {
     _long ltos
 }
@@ -126,6 +134,10 @@ func ftos {
 
 func dtos {
     "NotImplemented" "dtos is not implemented" throw
+}
+
+func stod {
+    "NotImplemented" "stod is not implemented" throw
 }
 
 "Number to string" #
