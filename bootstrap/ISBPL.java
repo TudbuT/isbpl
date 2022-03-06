@@ -477,22 +477,22 @@ public class ISBPL {
                     Object object2 = o2.object;
                     ISBPLObject r = null;
                     if(object1 instanceof Integer && object2 instanceof Integer) {
-                        r = new ISBPLObject(getType("int"), (int) (Integer) object1 + (int) (Integer) object2);
+                        r = new ISBPLObject(getType("int"), (int) ((int) (Integer) object1 + (int) (Integer) object2));
                     }
                     if(object1 instanceof Long && object2 instanceof Long) {
-                        r = new ISBPLObject(getType("long"), (long) (Long) object1 + (long) (Long) object2);
+                        r = new ISBPLObject(getType("long"), (long) ((long) (Long) object1 + (long) (Long) object2));
                     }
                     if(object1 instanceof Character && object2 instanceof Character) {
-                        r = new ISBPLObject(getType("char"), (char) (Character) object1 + (char) (Character) object2);
+                        r = new ISBPLObject(getType("char"), (char) ((char) (Character) object1 + (char) (Character) object2));
                     }
                     if(object1 instanceof Byte && object2 instanceof Byte) {
-                        r = new ISBPLObject(getType("byte"), Byte.toUnsignedInt((Byte) object1) + Byte.toUnsignedInt((Byte) object2));
+                        r = new ISBPLObject(getType("byte"), (byte) (Byte.toUnsignedInt((Byte) object1) + Byte.toUnsignedInt((Byte) object2)));
                     }
                     if(object1 instanceof Float && object2 instanceof Float) {
-                        r = new ISBPLObject(getType("float"), (float) (Float) object1 + (float) (Float) object2);
+                        r = new ISBPLObject(getType("float"), (float) ((float) (Float) object1 + (float) (Float) object2));
                     }
                     if(object1 instanceof Double && object2 instanceof Double) {
-                        r = new ISBPLObject(getType("double"), (double) (Double) object1 + (double) (Double) object2);
+                        r = new ISBPLObject(getType("double"), (double) ((double) (Double) object1 + (double) (Double) object2));
                     }
                     if(r != null)
                         stack.push(r);
@@ -510,22 +510,22 @@ public class ISBPL {
                     Object object2 = o2.object;
                     ISBPLObject r = null;
                     if(object1 instanceof Integer && object2 instanceof Integer) {
-                        r = new ISBPLObject(getType("int"), (int) (Integer) object1 - (int) (Integer) object2);
+                        r = new ISBPLObject(getType("int"), (int) ((int) (Integer) object1 - (int) (Integer) object2));
                     }
                     if(object1 instanceof Long && object2 instanceof Long) {
-                        r = new ISBPLObject(getType("long"), (long) (Long) object1 - (long) (Long) object2);
+                        r = new ISBPLObject(getType("long"), (long) ((long) (Long) object1 - (long) (Long) object2));
                     }
                     if(object1 instanceof Character && object2 instanceof Character) {
-                        r = new ISBPLObject(getType("char"), (char) (Character) object1 - (char) (Character) object2);
+                        r = new ISBPLObject(getType("char"), (char) ((char) (Character) object1 - (char) (Character) object2));
                     }
                     if(object1 instanceof Byte && object2 instanceof Byte) {
-                        r = new ISBPLObject(getType("byte"), Byte.toUnsignedInt((Byte) object1) - Byte.toUnsignedInt((Byte) object2));
+                        r = new ISBPLObject(getType("byte"), (byte) (Byte.toUnsignedInt((Byte) object1) - Byte.toUnsignedInt((Byte) object2)));
                     }
                     if(object1 instanceof Float && object2 instanceof Float) {
-                        r = new ISBPLObject(getType("float"), (float) (Float) object1 - (float) (Float) object2);
+                        r = new ISBPLObject(getType("float"), (float) ((float) (Float) object1 - (float) (Float) object2));
                     }
                     if(object1 instanceof Double && object2 instanceof Double) {
-                        r = new ISBPLObject(getType("double"), (double) (Double) object1 - (double) (Double) object2);
+                        r = new ISBPLObject(getType("double"), (double) ((double) (Double) object1 - (double) (Double) object2));
                     }
                     if(r != null)
                         stack.push(r);
@@ -544,22 +544,22 @@ public class ISBPL {
                         Object object2 = o2.object;
                         ISBPLObject r = null;
                         if (object1 instanceof Integer && object2 instanceof Integer) {
-                            r = new ISBPLObject(getType("int"), (int) (Integer) object1 / (int) (Integer) object2);
+                            r = new ISBPLObject(getType("int"), (int) ((int) (Integer) object1 / (int) (Integer) object2));
                         }
                         if (object1 instanceof Long && object2 instanceof Long) {
-                            r = new ISBPLObject(getType("long"), (long) (Long) object1 / (long) (Long) object2);
+                            r = new ISBPLObject(getType("long"), (long) ((long) (Long) object1 / (long) (Long) object2));
                         }
                         if (object1 instanceof Character && object2 instanceof Character) {
-                            r = new ISBPLObject(getType("char"), (char) (Character) object1 / (char) (Character) object2);
+                            r = new ISBPLObject(getType("char"), (char) ((char) (Character) object1 / (char) (Character) object2));
                         }
                         if (object1 instanceof Byte && object2 instanceof Byte) {
-                            r = new ISBPLObject(getType("byte"), Byte.toUnsignedInt((Byte) object1) / Byte.toUnsignedInt((Byte) object2));
+                            r = new ISBPLObject(getType("byte"), (byte) (Byte.toUnsignedInt((Byte) object1) / Byte.toUnsignedInt((Byte) object2)));
                         }
                         if (object1 instanceof Float && object2 instanceof Float) {
-                            r = new ISBPLObject(getType("float"), (float) (Float) object1 / (float) (Float) object2);
+                            r = new ISBPLObject(getType("float"), (float) ((float) (Float) object1 / (float) (Float) object2));
                         }
                         if (object1 instanceof Double && object2 instanceof Double) {
-                            r = new ISBPLObject(getType("double"), (double) (Double) object1 / (double) (Double) object2);
+                            r = new ISBPLObject(getType("double"), (double) ((double) (Double) object1 / (double) (Double) object2));
                         }
                         if (r != null)
                             stack.push(r);
@@ -580,22 +580,22 @@ public class ISBPL {
                     Object object2 = o2.object;
                     ISBPLObject r = null;
                     if(object1 instanceof Integer && object2 instanceof Integer) {
-                        r = new ISBPLObject(getType("int"), (int) (Integer) object1 * (int) (Integer) object2);
+                        r = new ISBPLObject(getType("int"), (int) ((int) (Integer) object1 * (int) (Integer) object2));
                     }
                     if(object1 instanceof Long && object2 instanceof Long) {
-                        r = new ISBPLObject(getType("long"), (long) (Long) object1 * (long) (Long) object2);
+                        r = new ISBPLObject(getType("long"), (long) ((long) (Long) object1 * (long) (Long) object2));
                     }
                     if(object1 instanceof Character && object2 instanceof Character) {
-                        r = new ISBPLObject(getType("char"), (char) (Character) object1 * (char) (Character) object2);
+                        r = new ISBPLObject(getType("char"), (char) ((char) (Character) object1 * (char) (Character) object2));
                     }
                     if(object1 instanceof Byte && object2 instanceof Byte) {
-                        r = new ISBPLObject(getType("byte"), Byte.toUnsignedInt((Byte) object1) * Byte.toUnsignedInt((Byte) object2));
+                        r = new ISBPLObject(getType("byte"), (byte) (Byte.toUnsignedInt((Byte) object1) * Byte.toUnsignedInt((Byte) object2)));
                     }
                     if(object1 instanceof Float && object2 instanceof Float) {
-                        r = new ISBPLObject(getType("float"), (float) (Float) object1 * (float) (Float) object2);
+                        r = new ISBPLObject(getType("float"), (float) ((float) (Float) object1 * (float) (Float) object2));
                     }
                     if(object1 instanceof Double && object2 instanceof Double) {
-                        r = new ISBPLObject(getType("double"), (double) (Double) object1 * (double) (Double) object2);
+                        r = new ISBPLObject(getType("double"), (double) ((double) (Double) object1 * (double) (Double) object2));
                     }
                     if(r != null)
                         stack.push(r);
@@ -647,22 +647,22 @@ public class ISBPL {
                         Object object2 = o2.object;
                         ISBPLObject r = null;
                         if (object1 instanceof Integer && object2 instanceof Integer) {
-                            r = new ISBPLObject(getType("int"), (int) (Integer) object1 % (int) (Integer) object2);
+                            r = new ISBPLObject(getType("int"), (int) ((int) (Integer) object1 % (int) (Integer) object2));
                         }
                         if (object1 instanceof Long && object2 instanceof Long) {
-                            r = new ISBPLObject(getType("long"), (long) (Long) object1 % (long) (Long) object2);
+                            r = new ISBPLObject(getType("long"), (long) ((long) (Long) object1 % (long) (Long) object2));
                         }
                         if (object1 instanceof Character && object2 instanceof Character) {
-                            r = new ISBPLObject(getType("char"), (char) (Character) object1 % (char) (Character) object2);
+                            r = new ISBPLObject(getType("char"), (char) ((char) (Character) object1 % (char) (Character) object2));
                         }
                         if (object1 instanceof Byte && object2 instanceof Byte) {
-                            r = new ISBPLObject(getType("byte"), Byte.toUnsignedInt((Byte) object1) % Byte.toUnsignedInt((Byte) object2));
+                            r = new ISBPLObject(getType("byte"), (byte) (Byte.toUnsignedInt((Byte) object1) % Byte.toUnsignedInt((Byte) object2)));
                         }
                         if (object1 instanceof Float && object2 instanceof Float) {
-                            r = new ISBPLObject(getType("float"), (float) (Float) object1 % (float) (Float) object2);
+                            r = new ISBPLObject(getType("float"), (float) ((float) (Float) object1 % (float) (Float) object2));
                         }
                         if (object1 instanceof Double && object2 instanceof Double) {
-                            r = new ISBPLObject(getType("double"), (double) (Double) object1 % (double) (Double) object2);
+                            r = new ISBPLObject(getType("double"), (double) ((double) (Double) object1 % (double) (Double) object2));
                         }
                         if (r != null)
                             stack.push(r);
@@ -683,13 +683,13 @@ public class ISBPL {
                     Object object2 = o2.object;
                     ISBPLObject r = null;
                     if(object1 instanceof Integer && object2 instanceof Integer) {
-                        r = new ISBPLObject(getType("int"), (int) (Integer) object1 ^ (int) (Integer) object2);
+                        r = new ISBPLObject(getType("int"), (int) ((int) (Integer) object1 ^ (int) (Integer) object2));
                     }
                     if(object1 instanceof Long && object2 instanceof Long) {
-                        r = new ISBPLObject(getType("long"), (long) (Long) object1 ^ (long) (Long) object2);
+                        r = new ISBPLObject(getType("long"), (long) ((long) (Long) object1 ^ (long) (Long) object2));
                     }
                     if(object1 instanceof Character && object2 instanceof Character) {
-                        r = new ISBPLObject(getType("char"), (char) (Character) object1 ^ (char) (Character) object2);
+                        r = new ISBPLObject(getType("char"), (char) ((char) (Character) object1 ^ (char) (Character) object2));
                     }
                     if(object1 instanceof Byte && object2 instanceof Byte) {
                         r = new ISBPLObject(getType("byte"), Byte.toUnsignedInt((Byte) object1) ^ Byte.toUnsignedInt((Byte) object2));
@@ -1099,7 +1099,7 @@ class ISBPLObject {
     
     @Override
     public String toString() {
-        if(type != null && type.name.equals("string")) {
+        if(type != null && object instanceof ISBPLObject[]) {
             try {
                 return "ISBPLObject{" +
                        "type=" + type +
@@ -1219,6 +1219,8 @@ class ISBPLDebugger extends Thread {
                 while ((line = reader.readLine()) != null) {
                     switch (line.split(" ")[0]) {
                         case "continue":
+                        case "cont":
+                        case "c":
                             isbpl.debuggerIPC.run = -1;
                             break;
                         case "stop":
@@ -1257,15 +1259,34 @@ class ISBPLDebugger extends Thread {
                                 }
                             }
                             break;
+                        case "dump":
+                            try {
+                                System.err.println("VAR DUMP\n----------------");
+                                for (HashMap<String, ISBPLCallable> map : isbpl.functionStack) {
+                                    for (String key : map.keySet()) {
+                                        if(key.startsWith("=")) {
+                                            map.get(key.substring(1)).call(new File("_debug").getAbsoluteFile());
+                                            System.err.println("\t" + key.substring(1) + ": \t" + isbpl.debuggerIPC.stack.pop());
+                                        }
+                                    }
+                                    System.err.println("----------------");
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                System.err.println("!!! VARS CORRUPTED! CANNOT FIX AUTOMATICALLY.");
+                            }
                         case "stack":
                             boolean fixed = false;
                             while (!fixed) {
                                 try {
-                                    System.err.println("Stack: " + isbpl.debuggerIPC.stack);
+                                    System.err.println("STACK DUMP");
+                                    for (ISBPLObject object : isbpl.debuggerIPC.stack) {
+                                        System.err.println("\t" + object);
+                                    }
                                     fixed = true;
                                 }
-                                catch (Exception e1) {
-                                    e1.printStackTrace();
+                                catch (Exception e) {
+                                    e.printStackTrace();
                                     System.err.println("!!! STACK CORRUPTED!");
                                     isbpl.debuggerIPC.stack.pop();
                                     System.err.println("Popped. Trying again.");
