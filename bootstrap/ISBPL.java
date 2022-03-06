@@ -1,4 +1,5 @@
 import java.io.*;
+import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -761,6 +762,16 @@ public class ISBPL {
                         throw new ISBPLError("IO", e.getMessage());
                     }
                 };
+                break;
+            case "_enable_debug":
+                func = (File file) -> {
+                    if(debuggerIPC.threadID == -1) {
+                        new ISBPLDebugger(this).start();
+                        stack.push(new ISBPLObject(getType("int"), 1));
+                    }
+                    stack.push(new ISBPLObject(getType("int"), 0));
+                };
+                break;
         }
         functionStack.peek().put(name, func);
     }
@@ -1260,7 +1271,21 @@ class ISBPLDebugger extends Thread {
     @Override
     public void run() {
         try {
-            ServerSocket socket = new ServerSocket(Integer.parseInt(System.getenv("DEBUG")));
+            ServerSocket socket = null;
+            try {
+                socket = new ServerSocket(Integer.parseInt(System.getenv().getOrDefault("DEBUG", "9736")));
+                System.err.println("Debugger listening on :" + socket.getLocalPort());
+            }
+            catch (BindException e) {
+                while (socket == null) {
+                    try {
+                        socket = new ServerSocket((int) (Math.random() * 5000 + 5000));
+                        System.err.println("Debugger listening on :" + socket.getLocalPort());
+                    }
+                    catch (BindException ignored) { }
+                }
+            }
+            isbpl.debuggerIPC.threadID = Thread.currentThread().getId();
             while (true) {
                 Socket s = socket.accept();
                 BufferedReader reader = new BufferedReader(new InputStreamReader(s.getInputStream()));
@@ -1371,7 +1396,7 @@ class ISBPLDebugger extends Thread {
     }
     
     static class IPC {
-        long threadID;
+        long threadID = -1;
         String until = null;
         int run = -1;
         Stack<ISBPLObject> stack = null;
