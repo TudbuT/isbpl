@@ -121,7 +121,7 @@ func itos {
 }
 
 func ftos {
-    dtos
+    _double dtos
 }
 
 func dtos {
