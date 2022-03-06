@@ -350,16 +350,6 @@ func dec {
         ( "=" varname strconcat 1 _layer_call ) "Store var" #
 }
 
-func random {
-    "file.isbpl" include
-    getos strlowercase dup ( "linux" strcontains ) swap ( "macos" strcontains ) or dup if {
-        "/dev/urandom" _file 0 1 read
-    }
-    not if {
-        "__windows_radom" call
-    }
-}
-
 func strlowercase {
     def s _array =s "bind string" #
     def i 0 =i
