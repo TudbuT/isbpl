@@ -1,5 +1,4 @@
 "#stream.isbpl" include
-"#iota.isbpl" include
 
 func main {
     pop
