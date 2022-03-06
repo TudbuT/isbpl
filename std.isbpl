@@ -139,6 +139,9 @@ func ltos {
 
     def c0 "0" char =c0
 
+    n 0 gt not if {
+        "0" =s
+    }
     while { n 0 gt } {
         ( ( ( n 10 _long % _char ) c0 + ) _char 1 anewput _string ) s strconcat =s
         n rem =n "divide by ten to remove last digit" #
@@ -168,7 +171,8 @@ func stol {
         s rem =s "remove first digit" #
     }
 
-    n ne -1 * _long *
+    ne if { n neg =n }
+    n
 }
 
 func char { _array 0 aget }
