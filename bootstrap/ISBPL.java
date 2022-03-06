@@ -20,6 +20,7 @@ public class ISBPL {
     HashMap<Object, ISBPLObject> vars = new HashMap<>();
     ArrayList<String> lastWords = new ArrayList<>(16);
     int exitCode;
+    private ISBPLStreamer streamer = new ISBPLStreamer(this);
     
     public ISBPL() {
         functionStack.push(new HashMap<>());
@@ -741,6 +742,18 @@ public class ISBPL {
                     stack.push(new ISBPLObject(getType("long"), System.currentTimeMillis()));
                 };
                 break;
+            case "stream":
+                func = (File file) -> {
+                    ISBPLObject action = stack.pop();
+                    action.checkType(getType("int"));
+                    int n = ((int) action.object);
+                    try {
+                        streamer.action(stack, n);
+                    }
+                    catch (IOException e) {
+                        throw new ISBPLError("IO", e.getMessage());
+                    }
+                };
         }
         functionStack.peek().put(name, func);
     }
@@ -1340,5 +1353,81 @@ class ISBPLDebugger extends Thread {
         int run = -1;
         Stack<ISBPLObject> stack = null;
         
+    }
+}
+
+class ISBPLStreamer {
+    public static final int CREATE_FILE =   1;
+    public static final int CREATE_SOCKET = 2;
+    public static final int READ =          3;
+    public static final int WRITE =         4;
+    public static final int AREAD =         5;
+    public static final int AWRITE =        6;
+    
+    static class ISBPLStream {
+        final InputStream in;
+        final OutputStream out;
+        static int gid = 0;
+        final int id = gid++;
+    
+        public ISBPLStream(InputStream in, OutputStream out) {
+            this.in = in;
+            this.out = out;
+        }
+    }
+    
+    final ISBPL isbpl;
+    
+    public ISBPLStreamer(ISBPL isbpl) {
+        this.isbpl = isbpl;
+    }
+    
+    public ArrayList<ISBPLStream> streams = new ArrayList<>();
+    
+    public void action(Stack<ISBPLObject> stack, int action) throws IOException {
+        ISBPLStream stream;
+        ISBPLObject s, i;
+        switch (action) {
+            case CREATE_FILE:
+                s = stack.pop();
+                s.checkType(isbpl.getType("string"));
+                File f = new File(isbpl.toJavaString(s));
+                stream = new ISBPLStream(new FileInputStream(f), new FileOutputStream(f));
+                streams.add(stream);
+                stack.push(new ISBPLObject(isbpl.getType("int"), stream.id));
+                break;
+            case CREATE_SOCKET:
+                i = stack.pop();
+                s = stack.pop();
+                i.checkType(isbpl.getType("int"));
+                s.checkType(isbpl.getType("string"));
+                Socket socket = new Socket(isbpl.toJavaString(s), ((int) i.object));
+                stream = new ISBPLStream(socket.getInputStream(), socket.getOutputStream());
+                streams.add(stream);
+                stack.push(new ISBPLObject(isbpl.getType("int"), stream.id));
+                break;
+            case READ:
+                i = stack.pop();
+                i.checkType(isbpl.getType("int"));
+                try {
+                    stack.push(new ISBPLObject(isbpl.getType("int"), streams.get(((int) i.object)).in.read()));
+                } catch (IndexOutOfBoundsException e) {
+                    throw new ISBPLError("IllegalArgument", "streamid STREAM_READ stream called with non-existing stream argument");
+                }
+                break;
+            case WRITE:
+                i = stack.pop();
+                i.checkType(isbpl.getType("int"));
+                ISBPLObject bte = stack.pop();
+                bte.checkTypeMulti(isbpl.getType("int"), isbpl.getType("char"), isbpl.getType("byte"));
+                try {
+                    streams.get(((int) i.object)).out.write(((int) bte.toLong()));
+                } catch (IndexOutOfBoundsException e) {
+                    throw new ISBPLError("IllegalArgument", "streamid STREAM_READ stream called with non-existing stream argument");
+                }
+                break;
+            default:
+                throw new ISBPLError("NotImplemented", "Not implemented");
+        }
     }
 }

@@ -1,0 +1,11 @@
+native stream
+
+
+def STREAM_CREATE_FILE     1 =STREAM_CREATE_FILE
+def STREAM_CREATE_SOCKET   2 =STREAM_CREATE_SOCKET
+def STREAM_READ            3 =STREAM_READ
+def STREAM_WRITE           4 =STREAM_WRITE
+
+"not implemented:" #
+    "def STREAM_AREAD           5 =STREAM_AREAD" #
+    "def STREAM_AWRITE          6 =STREAM_AWRITE" #
