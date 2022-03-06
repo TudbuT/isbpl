@@ -15,7 +15,7 @@ func main {
     
     "testing\n" puts
     "helloworld.isbpl" include
-    main
+    main pop
 
     0
 }
