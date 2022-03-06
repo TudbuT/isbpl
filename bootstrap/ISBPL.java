@@ -728,6 +728,19 @@ public class ISBPL {
                     stack.push(toISBPLString(lastWords.get(n)));
                 };
                 break;
+            case "time":
+                func = (File file) -> {
+                    ISBPLObject i = stack.pop();
+                    long n = (long) i.toLong();
+                    try {
+                        Thread.sleep(n);
+                    }
+                    catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    stack.push(new ISBPLObject(getType("long"), System.currentTimeMillis()));
+                };
+                break;
         }
         functionStack.peek().put(name, func);
     }
