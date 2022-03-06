@@ -117,59 +117,61 @@ func isstring {
 }
 
 func itos {
-    ntos
-}
-
-func ltos {
-    ntos
+    _long ltos
 }
 
 func ftos {
-    ntos
+    dtos
 }
 
 func dtos {
-    ntos
+    "NotImplemented" "dtos is not implemented" throw
 }
 
 "Number to string" #
-func ntos {
-    def s "" =s
-    def n =n
+func ltos {
+    def n =n "bind number" #
+    def s 0 anew =s "make array" #
+    
+    def ne n 0 lt dup if { n neg =n } =ne
+    
+    func rem { 10 _long / }
 
-    def negative n 0 lt dup if { n neg =n 1 =negative } =negative
-    def thetype n gettype =thetype
+    def c0 "0" char =c0
 
-    while { n 1 lt not } {
-        n ( n 10 % dup =x ) - =n
-        s ( n '0' + _char ) strconcat =s
-    }
-    def steps 1 =steps
-    while { n 0 eq not } {
-        n ( n ( 1 ( steps dup 10 * =steps ) / ) % dup =x ) - =n
-        s ( x '0' + _char ) strconcat =s
+    while { n 0 gt } {
+        ( ( ( n 10 _long % _char ) c0 + ) _char 1 anewput _string ) s strconcat =s
+        n rem =n "divide by ten to remove last digit" #
     }
 
-    negative if {
-        n neg =n
-    }
+    ne if { "-" s strconcat =s }
 
-    s
+    s _string
 }
 
-func ston {
-    def s =s "bind string" #
-    def n 0 =n "the number to return" #
-    def negative def idx s 0 aget '-' eq dup =idx =negative
+func stol {
+    def s _array =s "bind string" #
+    def n 0 _long =n "the number to return" #
+    
+    def ne s 0 aget "-" char eq =ne
+    def len s alen =len
+    ne if { s ( len 1 - dup =len anew ) 1 0 len acopy =s }
 
-    while { idx s alen lt } {
-        def chr s idx aget =chr
-        n ( chr ( 10 ( s alen idx - 1 - ) ** ) + =n
-        idx inc
+    func rem { dup ( ( def len alen 1 - =len ) len anew ) 1 0 len acopy }
+    
+    def c0 "0" char =c0
+
+    while { s alen 0 eq not } {
+        def chr s char =chr "extract first char" #
+        n 10 _long * =n
+        n ( chr c0 - _long ) + =n
+        s rem =s "remove first digit" #
     }
 
-    n
+    n ne -1 * _long *
 }
+
+func char { _array 0 aget }
 
 "Copy array" #
 func acopy {
@@ -181,22 +183,24 @@ func acopy {
     def arr1 =arr1
 
     def i 1 neg =i
-    while { ( i 1 + =i ) ( i len lt ) } {
-        arr2 i idx2 + ( arr1 i idx1 + aget ) aput
+    while { ( i ++ =i ) ( i len lt ) } {
+        arr2 ( i idx2 + ) ( arr1 ( i idx1 + ) aget ) aput
     }
+
+    arr2
 }
 
 func strconcat {
     "bind args" #
-    def str2 _string =str2
-    def str1 _string =str1
+    def str2 _string _array =str2
+    def str1 _string _array =str1
 
-    def str 0 _char str1 alen str2 alen + anew =str
+    def str str1 alen str2 alen + anew =str
 
-    str1 str 0 0         str1 alen acopy
-    str2 str 0 str1 alen str2 alen acopy
+    str1  str  0  0          str1 alen  acopy pop
+    str2  str  0  str1 alen  str2 alen  acopy pop
 
-    str
+    str _string
 }
 
 func strsplit {
@@ -267,9 +271,10 @@ func anewput {
     def arr size anew =arr
 
     def i 0 =i
+    def tmp
     while { i size lt } {
-        arr swap i swap aput
-        i 1 + =i
+        =tmp arr i tmp aput
+        i inc
     }
 
     arr areverse
