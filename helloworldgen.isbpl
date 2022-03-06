@@ -13,9 +13,10 @@ func main {
 
     id STREAM_CLOSE stream
     
-    "testing\n" puts
+    "Testing: \n" struppercase puts
     "helloworld.isbpl" include
     main pop
+    "TEST DONE\n" strlowercase puts
 
     0
 }

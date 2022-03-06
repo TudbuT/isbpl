@@ -361,27 +361,27 @@ func random {
 }
 
 func strlowercase {
-    def s =s "bind string" #
+    def s _array =s "bind string" #
     def i 0 =i
     while { i s alen lt } {
-        def char s i aget =char
-        char 64 gt char 91 lt and if {
-            s i char 32 + aput
+        def chr s i aget =chr
+        chr "A" char lt not chr "Z" char gt not and if {
+            s i chr "a" char "A" char - + aput
         }
         i inc
     }
-    s
+    s _string
 }
 
 func struppercase {
-    def s =s "bind string" #
+    def s _array =s "bind string" #
     def i 0 =i
     while { i s alen lt } {
-        def char s i aget =char
-        char 89 gt char 123 lt and if {
-            s i char 32 - aput
+        def chr s i aget =chr
+        chr "a" char lt not chr "z" char gt not and if {
+            s i chr "a" char "A" char - - aput
         }
         i inc
     }
-    s
+    s _string
 }
