@@ -21,6 +21,7 @@ public class ISBPL {
     ArrayList<String> lastWords = new ArrayList<>(16);
     int exitCode;
     private ISBPLStreamer streamer = new ISBPLStreamer(this);
+    ArrayList<String> included = new ArrayList<>();
     
     public ISBPL() {
         functionStack.push(new HashMap<>());
@@ -267,26 +268,32 @@ public class ISBPL {
                     functionStack.get(functionStack.size() - 1 - ((int) i.object)).get(toJavaString(s)).call(file);
                 };
                 break;
+            case "reload":
+                func = (File file) -> {
+                    String filepath = getFilePathForInclude((Stack<ISBPLObject>) stack, file);
+                    if(included.contains(filepath)) {
+                        File f = new File(filepath).getAbsoluteFile();
+                        try {
+                            interpret(f, readFile(f), stack);
+                        }
+                        catch (IOException e) {
+                            throw new ISBPLError("IO", "Couldn't find file " + filepath + " required by include keyword.");
+                        }
+                    }
+                };
+                break;
             case "include":
                 func = (File file) -> {
-                    ISBPLObject s = stack.pop();
-                    String filepath = toJavaString(s);
-                    processPath:
-                    {
-                        if (filepath.startsWith("/"))
-                            break processPath;
-                        if (filepath.startsWith("#")) {
-                            filepath = System.getenv().getOrDefault("ISBPL_PATH", "/usr/lib/isbpl") + "/" + filepath.substring(1);
-                            break processPath;
+                    String filepath = getFilePathForInclude((Stack<ISBPLObject>) stack, file);
+                    if(!included.contains(filepath)) {
+                        File f = new File(filepath).getAbsoluteFile();
+                        try {
+                            interpret(f, readFile(f), stack);
                         }
-                        filepath = file.getParentFile().getAbsolutePath() + "/" + filepath;
-                    }
-                    File f = new File(filepath).getAbsoluteFile();
-                    try {
-                        interpret(f, readFile(f), stack);
-                    }
-                    catch (IOException e) {
-                        throw new ISBPLError("IO", "Couldn't find file " + filepath + " required by include keyword.");
+                        catch (IOException e) {
+                            throw new ISBPLError("IO", "Couldn't find file " + filepath + " required by include keyword.");
+                        }
+                        included.add(filepath);
                     }
                 };
                 break;
@@ -756,6 +763,22 @@ public class ISBPL {
                 };
         }
         functionStack.peek().put(name, func);
+    }
+    
+    private String getFilePathForInclude(Stack<ISBPLObject> stack, File file) {
+        ISBPLObject s = stack.pop();
+        String filepath = toJavaString(s);
+        processPath:
+        {
+            if (filepath.startsWith("/"))
+                break processPath;
+            if (filepath.startsWith("#")) {
+                filepath = System.getenv().getOrDefault("ISBPL_PATH", "/usr/lib/isbpl") + "/" + filepath.substring(1);
+                break processPath;
+            }
+            filepath = file.getParentFile().getAbsolutePath() + "/" + filepath;
+        }
+        return filepath;
     }
     
     private int createFunction(int i, String[] words, Stack<ISBPLObject> stack) {
@@ -1357,12 +1380,14 @@ class ISBPLDebugger extends Thread {
 }
 
 class ISBPLStreamer {
-    public static final int CREATE_FILE =   1;
-    public static final int CREATE_SOCKET = 2;
-    public static final int READ =          3;
-    public static final int WRITE =         4;
-    public static final int AREAD =         5;
-    public static final int AWRITE =        6;
+    public static final int CREATE_FILE_IN =    0;
+    public static final int CREATE_FILE_OUT =   1;
+    public static final int CREATE_SOCKET =     2;
+    public static final int CLOSE =             3;
+    public static final int READ =              4;
+    public static final int WRITE =             5;
+    public static final int AREAD =             6;
+    public static final int AWRITE =            7;
     
     static class ISBPLStream {
         final InputStream in;
@@ -1373,6 +1398,11 @@ class ISBPLStreamer {
         public ISBPLStream(InputStream in, OutputStream out) {
             this.in = in;
             this.out = out;
+        }
+    
+        public void close() throws IOException {
+            this.in.close();
+            this.out.close();
         }
     }
     
@@ -1387,12 +1417,31 @@ class ISBPLStreamer {
     public void action(Stack<ISBPLObject> stack, int action) throws IOException {
         ISBPLStream stream;
         ISBPLObject s, i;
+        File f;
         switch (action) {
-            case CREATE_FILE:
+            case CREATE_FILE_IN:
                 s = stack.pop();
                 s.checkType(isbpl.getType("string"));
-                File f = new File(isbpl.toJavaString(s));
-                stream = new ISBPLStream(new FileInputStream(f), new FileOutputStream(f));
+                f = new File(isbpl.toJavaString(s));
+                stream = new ISBPLStream(new FileInputStream(f), new OutputStream() {
+                    @Override
+                    public void write(int b) throws IOException {
+                        throw new ISBPLError("IllegalArgument", "Can't write to a FILE_IN stream!");
+                    }
+                });
+                streams.add(stream);
+                stack.push(new ISBPLObject(isbpl.getType("int"), stream.id));
+                break;
+            case CREATE_FILE_OUT:
+                s = stack.pop();
+                s.checkType(isbpl.getType("string"));
+                f = new File(isbpl.toJavaString(s));
+                stream = new ISBPLStream(new InputStream() {
+                    @Override
+                    public int read() throws IOException {
+                        throw new ISBPLError("IllegalArgument", "Can't read a FILE_OUT stream!");
+                    }
+                }, new FileOutputStream(f));
                 streams.add(stream);
                 stack.push(new ISBPLObject(isbpl.getType("int"), stream.id));
                 break;
@@ -1423,7 +1472,17 @@ class ISBPLStreamer {
                 try {
                     streams.get(((int) i.object)).out.write(((int) bte.toLong()));
                 } catch (IndexOutOfBoundsException e) {
-                    throw new ISBPLError("IllegalArgument", "streamid STREAM_READ stream called with non-existing stream argument");
+                    throw new ISBPLError("IllegalArgument", "byte streamid STREAM_WRITE stream called with non-existing stream argument");
+                }
+                break;
+            case CLOSE:
+                i = stack.pop();
+                i.checkType(isbpl.getType("int"));
+                try {
+                    ISBPLStream strm = streams.get(((int) i.object));
+                    strm.close();
+                } catch (IndexOutOfBoundsException e) {
+                    throw new ISBPLError("IllegalArgument", "streamid STREAM_CLOSE stream called with non-existing stream argument");
                 }
                 break;
             default:

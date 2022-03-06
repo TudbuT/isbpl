@@ -1,0 +1,4 @@
+
+def iota_storage 0 =iota_storage
+func iota { iota_storage dup ++ =iota_storage }
+func riota { 0 1 =iota_storage }

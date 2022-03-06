@@ -1,0 +1,17 @@
+native time
+
+func getms {
+    0 time
+}
+
+func sleep {
+    time pop
+}
+
+func delay {
+    time pop
+}
+
+func delays {
+    1000 * time pop
+}

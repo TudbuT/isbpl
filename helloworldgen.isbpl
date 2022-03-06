@@ -1,0 +1,22 @@
+"#stream.isbpl" include
+"#iota.isbpl" include
+
+func main {
+    pop
+    def id "helloworld.isbpl" STREAM_CREATE_FILE_OUT stream =id
+    def s "func main {\n    \"Hello World!\\n\" puts\n    0\n}" _array =s
+
+    def i 0 =i
+    while { i s alen lt } {
+        ( s i aget ) id STREAM_WRITE stream
+        i inc
+    }
+
+    id STREAM_CLOSE stream
+    
+    "testing\n" puts
+    "helloworld.isbpl" include
+    main
+
+    0
+}
