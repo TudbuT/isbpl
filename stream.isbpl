@@ -12,3 +12,26 @@ def STREAM_WRITE           iota =STREAM_WRITE
 "not implemented:" #
     "def STREAM_AREAD           iota =STREAM_AREAD" #
     "def STREAM_AWRITE          iota =STREAM_AWRITE" #
+
+func stream.readline {
+    def id =id
+    def byte 0 =byte
+    def array 0 anew =array
+    def tmparray 0 anew =tmparray
+    def i 1 neg =i
+    while { ( i 1 + =i ) ( byte 10 eq not ) } {
+        id STREAM_READ stream =byte
+        array ( ( array alen 1 + anew ) dup =tmparray ) 0 0 ( array alen ) acopy =array
+        array dup alen 1 - byte _char aput
+    }
+    array ( ( array alen 1 - anew ) dup =tmparray 0 0 ) ( tmparray alen ) acopy _string
+}
+
+func stream.write {
+    def id =id
+    def str _array =str 
+    def i 1 neg =i
+    while { ( i 1 + =i ) ( i str alen lt ) } {
+        str i aget id STREAM_WRITE stream
+    }
+}
