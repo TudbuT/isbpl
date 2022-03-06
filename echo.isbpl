@@ -1,0 +1,9 @@
+"#file.isbpl" include
+
+func main {
+    def args =args
+    while { 1 } {
+        "/dev/stdin" _file 0 1 read 0 aget _char putchar
+    }
+    0
+}

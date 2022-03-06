@@ -1,0 +1,11 @@
+"#stream.isbpl" include
+"#file.isbpl" include
+
+func main {
+    def args =args
+    def id args 0 aget args 1 aget stol _int STREAM_CREATE_SOCKET stream =id
+    while { 1 } {
+        "/dev/stdin" _file 0 1 read 0 aget _char id STREAM_WRITE stream
+    }
+    0
+}
