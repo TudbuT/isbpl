@@ -1217,93 +1217,101 @@ class ISBPLDebugger extends Thread {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(s.getInputStream()));
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    switch (line.split(" ")[0]) {
-                        case "continue":
-                        case "cont":
-                        case "c":
-                            isbpl.debuggerIPC.run = -1;
-                            break;
-                        case "stop":
-                            isbpl.debuggerIPC.run = 0;
-                            break;
-                        case "next":
-                        case "n":
-                            isbpl.debuggerIPC.run = 1;
-                            break;
-                        case "until":
-                        case "u":
-                            isbpl.debuggerIPC.until = line.split(" ")[1];
-                            isbpl.debuggerIPC.run = -2;
-                            break;
-                        case "eval":
-                            isbpl.debuggerIPC.run = -3;
-                            isbpl.debuggerIPC.threadID = Thread.currentThread().getId();
-                            try {
-                                isbpl.interpret(new File("_debug").getAbsoluteFile(), line.substring(5), isbpl.debuggerIPC.stack);
-                            } catch (ISBPLStop stop) {
-                                System.exit(isbpl.exitCode);
-                            } catch (Throwable e) {
-                                e.printStackTrace();
+                    try {
+                        switch (line.split(" ")[0]) {
+                            case "continue":
+                            case "cont":
+                            case "c":
+                                isbpl.debuggerIPC.run = -1;
+                                break;
+                            case "stop":
+                                isbpl.debuggerIPC.run = 0;
+                                break;
+                            case "next":
+                            case "n":
+                                isbpl.debuggerIPC.run = 1;
+                                break;
+                            case "do":
+                            case "d":
+                                isbpl.debuggerIPC.run = Integer.parseInt(line.split(" ")[1]);
+                                break;
+                            case "until":
+                            case "u":
+                                isbpl.debuggerIPC.until = line.split(" ")[1];
+                                isbpl.debuggerIPC.run = -2;
+                                break;
+                            case "eval":
+                                isbpl.debuggerIPC.run = -3;
+                                isbpl.debuggerIPC.threadID = Thread.currentThread().getId();
+                                try {
+                                    isbpl.interpret(new File("_debug").getAbsoluteFile(), line.substring(5), isbpl.debuggerIPC.stack);
+                                } catch (ISBPLStop stop) {
+                                    System.exit(isbpl.exitCode);
+                                } catch (Throwable e) {
+                                    e.printStackTrace();
+                                    boolean fixed = false;
+                                    while (!fixed) {
+                                        try {
+                                            System.err.println("Stack recovered: " + isbpl.debuggerIPC.stack);
+                                            fixed = true;
+                                        }
+                                        catch (Exception e1) {
+                                            e.printStackTrace();
+                                            System.err.println("!!! STACK CORRUPTED!");
+                                            isbpl.debuggerIPC.stack.pop();
+                                            System.err.println("Popped. Trying again.");
+                                        }
+                                    }
+                                }
+                                break;
+                            case "dump":
+                                try {
+                                    System.err.println("VAR DUMP\n----------------");
+                                    for (HashMap<String, ISBPLCallable> map : isbpl.functionStack) {
+                                        for (String key : map.keySet()) {
+                                            if(key.startsWith("=")) {
+                                                map.get(key.substring(1)).call(new File("_debug").getAbsoluteFile());
+                                                System.err.println("\t" + key.substring(1) + ": \t" + isbpl.debuggerIPC.stack.pop());
+                                            }
+                                        }
+                                        System.err.println("----------------");
+                                    }
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                    System.err.println("!!! VARS CORRUPTED! CANNOT FIX AUTOMATICALLY.");
+                                }
+                            case "stack":
                                 boolean fixed = false;
                                 while (!fixed) {
                                     try {
-                                        System.err.println("Stack recovered: " + isbpl.debuggerIPC.stack);
+                                        System.err.println("STACK DUMP");
+                                        for (ISBPLObject object : isbpl.debuggerIPC.stack) {
+                                            System.err.println("\t" + object);
+                                        }
                                         fixed = true;
                                     }
-                                    catch (Exception e1) {
+                                    catch (Exception e) {
                                         e.printStackTrace();
                                         System.err.println("!!! STACK CORRUPTED!");
                                         isbpl.debuggerIPC.stack.pop();
                                         System.err.println("Popped. Trying again.");
                                     }
                                 }
-                            }
-                            break;
-                        case "dump":
-                            try {
-                                System.err.println("VAR DUMP\n----------------");
-                                for (HashMap<String, ISBPLCallable> map : isbpl.functionStack) {
-                                    for (String key : map.keySet()) {
-                                        if(key.startsWith("=")) {
-                                            map.get(key.substring(1)).call(new File("_debug").getAbsoluteFile());
-                                            System.err.println("\t" + key.substring(1) + ": \t" + isbpl.debuggerIPC.stack.pop());
-                                        }
-                                    }
-                                    System.err.println("----------------");
-                                }
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                                System.err.println("!!! VARS CORRUPTED! CANNOT FIX AUTOMATICALLY.");
-                            }
-                        case "stack":
-                            boolean fixed = false;
-                            while (!fixed) {
-                                try {
-                                    System.err.println("STACK DUMP");
-                                    for (ISBPLObject object : isbpl.debuggerIPC.stack) {
-                                        System.err.println("\t" + object);
-                                    }
-                                    fixed = true;
-                                }
-                                catch (Exception e) {
-                                    e.printStackTrace();
-                                    System.err.println("!!! STACK CORRUPTED!");
-                                    isbpl.debuggerIPC.stack.pop();
-                                    System.err.println("Popped. Trying again.");
-                                }
-                            }
-                            break;
-                        case "son":
-                            ISBPL.debug = true;
-                            break;
-                        case "soff":
-                            ISBPL.debug = false;
-                            break;
-                        case "exit":
-                            System.exit(255);
-                            break;
-                        default:
-                            break;
+                                break;
+                            case "son":
+                                ISBPL.debug = true;
+                                break;
+                            case "soff":
+                                ISBPL.debug = false;
+                                break;
+                            case "exit":
+                                System.exit(255);
+                                break;
+                            default:
+                                break;
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace(new PrintStream(s.getOutputStream()));
                     }
                 }
             }
