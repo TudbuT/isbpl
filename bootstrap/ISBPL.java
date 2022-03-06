@@ -1211,7 +1211,7 @@ class ISBPLDebugger extends Thread {
     @Override
     public void run() {
         try {
-            ServerSocket socket = new ServerSocket(9736);
+            ServerSocket socket = new ServerSocket(Integer.parseInt(System.getenv("DEBUG")));
             while (true) {
                 Socket s = socket.accept();
                 BufferedReader reader = new BufferedReader(new InputStreamReader(s.getInputStream()));
