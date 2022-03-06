@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 
 public class ISBPL {
-    private static boolean debug = false;
+    static boolean debug = false;
     public ISBPLDebugger.IPC debuggerIPC = new ISBPLDebugger.IPC();
     ArrayList<ISBPLType> types = new ArrayList<>();
     Stack<HashMap<String, ISBPLCallable>> functionStack = new Stack<>();
@@ -97,8 +97,8 @@ public class ISBPL {
                         block.call(file);
                     } catch (ISBPLError error) {
                         if (Arrays.asList(allowed).contains(error.type) || allowed.length != 1 && allowed[0].equals("all")) {
-                            stack.push(toISBPLString(error.type));
                             stack.push(toISBPLString(error.message));
+                            stack.push(toISBPLString(error.type));
                             catcher.call(file);
                         }
                         else {
@@ -1292,6 +1292,12 @@ class ISBPLDebugger extends Thread {
                                     System.err.println("Popped. Trying again.");
                                 }
                             }
+                            break;
+                        case "son":
+                            ISBPL.debug = true;
+                            break;
+                        case "soff":
+                            ISBPL.debug = false;
                             break;
                         case "exit":
                             System.exit(255);
