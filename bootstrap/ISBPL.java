@@ -1033,6 +1033,7 @@ public class ISBPL {
         debug = !System.getenv().getOrDefault("DEBUG", "").equals("");
         if(debug) {
             new ISBPLDebugger(isbpl).start();
+            isbpl.debuggerIPC.run = 0;
         }
         try {
             File std = new File(System.getenv().getOrDefault("ISBPL_PATH", "/usr/lib/isbpl") + "/std.isbpl");
@@ -1274,7 +1275,6 @@ class ISBPLDebugger extends Thread {
     
     public ISBPLDebugger(ISBPL isbpl) {
         this.isbpl = isbpl;
-        isbpl.debuggerIPC.run = 0;
     }
     
     @Override
