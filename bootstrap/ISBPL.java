@@ -776,7 +776,8 @@ public class ISBPL {
                         }
                         stack.push(new ISBPLObject(getType("int"), debugger.port));
                     }
-                    stack.push(new ISBPLObject(getType("int"), 0));
+                    else
+                        stack.push(new ISBPLObject(getType("int"), 0));
                 };
                 break;
         }
