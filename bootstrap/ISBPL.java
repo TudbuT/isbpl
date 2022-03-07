@@ -780,6 +780,27 @@ public class ISBPL {
                         stack.push(new ISBPLObject(getType("int"), 0));
                 };
                 break;
+            case "_getvars":
+                func = (File file) -> {
+                    ISBPLObject[] objects = new ISBPLObject[functionStack.size()];
+                    int i = 0;
+                    for (HashMap<String, ISBPLCallable> map : functionStack) {
+                        ArrayList<ISBPLObject> strings = new ArrayList<>();
+                        for (String key : map.keySet()) {
+                            if(key.startsWith("=")) {
+                                strings.add(toISBPLString(key.substring(1)));
+                            }
+                        }
+                        objects[i++] = new ISBPLObject(getType("array"), strings.toArray(new ISBPLObject[0]));
+                    }
+                    ISBPLObject array = new ISBPLObject(getType("array"), objects);
+                };
+                break;
+            case "stacksize":
+                func = (File file) -> {
+                    stack.push(new ISBPLObject(getType("int"), stack.size()));
+                };
+                break;
         }
         functionStack.peek().put(name, func);
     }
