@@ -766,8 +766,15 @@ public class ISBPL {
             case "_enable_debug":
                 func = (File file) -> {
                     if(debuggerIPC.threadID == -1) {
-                        new ISBPLDebugger(this).start();
-                        stack.push(new ISBPLObject(getType("int"), 1));
+                        ISBPLDebugger debugger = new ISBPLDebugger(this);
+                        debugger.start();
+                        try {
+                            while(debugger.port == -1) Thread.sleep(1);
+                        }
+                        catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        stack.push(new ISBPLObject(getType("int"), debugger.port));
                     }
                     stack.push(new ISBPLObject(getType("int"), 0));
                 };
@@ -1262,6 +1269,7 @@ class ISBPLStop extends RuntimeException {
 
 class ISBPLDebugger extends Thread {
     private ISBPL isbpl;
+    int port = -1;
     
     public ISBPLDebugger(ISBPL isbpl) {
         this.isbpl = isbpl;
@@ -1274,6 +1282,7 @@ class ISBPLDebugger extends Thread {
             ServerSocket socket = null;
             try {
                 socket = new ServerSocket(Integer.parseInt(System.getenv().getOrDefault("DEBUG", "9736")));
+                port = socket.getLocalPort();
                 System.err.println("Debugger listening on :" + socket.getLocalPort());
             }
             catch (BindException e) {
