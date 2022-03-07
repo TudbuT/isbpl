@@ -1289,6 +1289,7 @@ class ISBPLDebugger extends Thread {
                 while (socket == null) {
                     try {
                         socket = new ServerSocket((int) (Math.random() * 5000 + 5000));
+                        port = socket.getLocalPort();
                         System.err.println("Debugger listening on :" + socket.getLocalPort());
                     }
                     catch (BindException ignored) { }
