@@ -1330,6 +1330,7 @@ class ISBPLDebugger extends Thread {
                                 isbpl.debuggerIPC.run = -1;
                                 break;
                             case "stop":
+                            case "s":
                                 isbpl.debuggerIPC.run = 0;
                                 break;
                             case "next":
