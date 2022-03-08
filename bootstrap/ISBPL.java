@@ -272,14 +272,12 @@ public class ISBPL {
             case "reload":
                 func = (File file) -> {
                     String filepath = getFilePathForInclude((Stack<ISBPLObject>) stack, file);
-                    if(included.contains(filepath)) {
-                        File f = new File(filepath).getAbsoluteFile();
-                        try {
-                            interpret(f, readFile(f), stack);
-                        }
-                        catch (IOException e) {
-                            throw new ISBPLError("IO", "Couldn't find file " + filepath + " required by include keyword.");
-                        }
+                    File f = new File(filepath).getAbsoluteFile();
+                    try {
+                        interpret(f, readFile(f), stack);
+                    }
+                    catch (IOException e) {
+                        throw new ISBPLError("IO", "Couldn't find file " + filepath + " required by include keyword.");
                     }
                 };
                 break;
@@ -794,6 +792,7 @@ public class ISBPL {
                         objects[i++] = new ISBPLObject(getType("array"), strings.toArray(new ISBPLObject[0]));
                     }
                     ISBPLObject array = new ISBPLObject(getType("array"), objects);
+                    stack.push(array);
                 };
                 break;
             case "stacksize":
