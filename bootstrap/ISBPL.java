@@ -22,7 +22,7 @@ public class ISBPL {
     HashMap<Object, ISBPLObject> vars = new HashMap<>();
     final ISBPLThreadLocal<ArrayList<String>> lastWords = ISBPLThreadLocal.withInitial(() -> new ArrayList<>(16));
     int exitCode;
-    private ISBPLStreamer streamer = new ISBPLStreamer(this);
+    private final ISBPLStreamer streamer = new ISBPLStreamer(this);
     ArrayList<String> included = new ArrayList<>();
     
     public ISBPL() {
@@ -1069,7 +1069,7 @@ public class ISBPL {
                 ;
     }
     
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
         Stack<ISBPLObject> stack = new Stack<>();
         ISBPL isbpl = new ISBPL();
         isbpl.debuggerIPC.stack.put(Thread.currentThread().getId(), stack);
@@ -1512,6 +1512,7 @@ class ISBPLStreamer {
     public static final int WRITE =             5;
     public static final int AREAD =             6;
     public static final int AWRITE =            7;
+    public static final int CREATE_SERVER =     9;
     
     static class ISBPLStream {
         final InputStream in;
@@ -1538,7 +1539,7 @@ class ISBPLStreamer {
     
     public ArrayList<ISBPLStream> streams = new ArrayList<>();
     
-    public void action(Stack<ISBPLObject> stack, int action) throws IOException {
+    public synchronized void action(Stack<ISBPLObject> stack, int action) throws IOException {
         ISBPLStream stream;
         ISBPLObject s, i;
         File f;
@@ -1576,6 +1577,26 @@ class ISBPLStreamer {
                 s.checkType(isbpl.getType("string"));
                 Socket socket = new Socket(isbpl.toJavaString(s), ((int) i.object));
                 stream = new ISBPLStream(socket.getInputStream(), socket.getOutputStream());
+                streams.add(stream);
+                stack.push(new ISBPLObject(isbpl.getType("int"), stream.id));
+                break;
+            case CREATE_SERVER:
+                i = stack.pop();
+                i.checkType(isbpl.getType("int"));
+                ServerSocket server = new ServerSocket(((int) i.object));
+                stream = new ISBPLStream(new InputStream() {
+                    @Override
+                    public int read() throws IOException {
+                        Socket socket = server.accept();
+                        ISBPLStream stream = new ISBPLStream(socket.getInputStream(), socket.getOutputStream());
+                        return stream.id;
+                    }
+                }, new OutputStream() {
+                    @Override
+                    public void write(int b) throws IOException {
+                        throw new ISBPLError("IllegalArgument", "Can't write to a SERVER stream!");
+                    }
+                });
                 streams.add(stream);
                 stack.push(new ISBPLObject(isbpl.getType("int"), stream.id));
                 break;
