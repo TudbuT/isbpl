@@ -2,16 +2,18 @@
 
 native stream
 
-def STREAM_CREATE_FILE_IN riota =STREAM_CREATE_FILE_IN
-def STREAM_CREATE_FILE_OUT iota =STREAM_CREATE_FILE_OUT
-def STREAM_CREATE_SOCKET   iota =STREAM_CREATE_SOCKET
-def STREAM_CLOSE           iota =STREAM_CLOSE
-def STREAM_READ            iota =STREAM_READ
-def STREAM_WRITE           iota =STREAM_WRITE
+def STREAM.create.file.in riota =STREAM.create.file.in
+def STREAM.create.file.out iota =STREAM.create.file.out
+def STREAM.create.socket   iota =STREAM.create.socket
+def STREAM.close           iota =STREAM.close
+def STREAM.read            iota =STREAM.read
+def STREAM.write           iota =STREAM.write
 
 "not implemented:" #
-    "def STREAM_AREAD           iota =STREAM_AREAD" #
-    "def STREAM_AWRITE          iota =STREAM_AWRITE" #
+    def STREAM.aread           iota =STREAM.aread
+    def STREAM.awrite          iota =STREAM.awrite
+
+def STREAM.create.server iota =STREAM.create.server
 
 func stream.readline {
     def id =id
@@ -20,7 +22,7 @@ func stream.readline {
     def tmparray 0 anew =tmparray
     def i 1 neg =i
     while { ( i 1 + =i ) ( byte 10 eq not ) } {
-        id STREAM_READ stream =byte
+        id STREAM.read stream =byte
         array ( ( array alen 1 + anew ) dup =tmparray ) 0 0 ( array alen ) acopy =array
         array dup alen 1 - byte _char aput
     }
@@ -32,6 +34,6 @@ func stream.write {
     def str _array =str 
     def i 1 neg =i
     while { ( i 1 + =i ) ( i str alen lt ) } {
-        str i aget id STREAM_WRITE stream
+        str i aget id STREAM.write stream
     }
 }
