@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Stack;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 /**
  * @author TudbuT
@@ -17,15 +18,15 @@ public class ISBPL {
     static boolean debug = false;
     public ISBPLDebugger.IPC debuggerIPC = new ISBPLDebugger.IPC();
     ArrayList<ISBPLType> types = new ArrayList<>();
-    Stack<HashMap<String, ISBPLCallable>> functionStack = new Stack<>();
+    final ISBPLThreadLocal<Stack<HashMap<String, ISBPLCallable>>> functionStack = ISBPLThreadLocal.withInitial(Stack::new);
     HashMap<Object, ISBPLObject> vars = new HashMap<>();
-    ArrayList<String> lastWords = new ArrayList<>(16);
+    final ISBPLThreadLocal<ArrayList<String>> lastWords = ISBPLThreadLocal.withInitial(() -> new ArrayList<>(16));
     int exitCode;
     private ISBPLStreamer streamer = new ISBPLStreamer(this);
     ArrayList<String> included = new ArrayList<>();
     
     public ISBPL() {
-        functionStack.push(new HashMap<>());
+        functionStack.get().push(new HashMap<>());
     }
     
     public ISBPLKeyword getKeyword(String word) {
@@ -33,26 +34,26 @@ public class ISBPL {
             case "native":
                 return (idx, words, file, stack) -> {
                     idx++;
-                    addNative(words[idx], stack);
+                    addNative(words[idx]);
                     return idx;
                 };
             case "func":
-                return (i1, words1, stack1, stack12) -> createFunction(i1, words1, stack12);
+                return (i1, words1, stack1, stack12) -> createFunction(i1, words1);
             case "def":
                 return (idx, words, file, stack) -> {
                     idx++;
                     Object var = new Object();
-                    functionStack.peek().put(words[idx], (file1) -> stack.push(vars.get(var)));
-                    functionStack.peek().put("=" + words[idx], (file1) -> vars.put(var, stack.pop()));
+                    functionStack.get().peek().put(words[idx], (file1, stack1) -> stack1.push(vars.get(var)));
+                    functionStack.get().peek().put("=" + words[idx], (file1, stack1) -> vars.put(var, stack1.pop()));
                     return idx;
                 };
             case "if":
                 return (idx, words, file, stack) -> {
                     idx++;
                     AtomicInteger i = new AtomicInteger(idx);
-                    ISBPLCallable callable = readBlock(i, words, stack, false);
+                    ISBPLCallable callable = readBlock(i, words, false);
                     if(stack.pop().isTruthy()) {
-                        callable.call(file);
+                        callable.call(file, stack);
                     }
                     return i.get();
                 };
@@ -60,13 +61,13 @@ public class ISBPL {
                 return (idx, words, file, stack) -> {
                     idx++;
                     AtomicInteger i = new AtomicInteger(idx);
-                    ISBPLCallable cond = readBlock(i, words, stack, false);
+                    ISBPLCallable cond = readBlock(i, words, false);
                     i.getAndIncrement();
-                    ISBPLCallable block = readBlock(i, words, stack, false);
-                    cond.call(file);
+                    ISBPLCallable block = readBlock(i, words, false);
+                    cond.call(file, stack);
                     while (stack.pop().isTruthy()) {
-                        block.call(file);
-                        cond.call(file);
+                        block.call(file, stack);
+                        cond.call(file, stack);
                     }
                     return i.get();
                 };
@@ -93,16 +94,16 @@ public class ISBPL {
                         }
                     }
                     AtomicInteger i = new AtomicInteger(idx);
-                    ISBPLCallable block = readBlock(i, words, stack, false);
+                    ISBPLCallable block = readBlock(i, words, false);
                     i.getAndIncrement();
-                    ISBPLCallable catcher = readBlock(i, words, stack, false);
+                    ISBPLCallable catcher = readBlock(i, words, false);
                     try {
-                        block.call(file);
+                        block.call(file, stack);
                     } catch (ISBPLError error) {
                         if (Arrays.asList(allowed).contains(error.type) || allowed.length != 1 && allowed[0].equals("all")) {
                             stack.push(toISBPLString(error.message));
                             stack.push(toISBPLString(error.type));
-                            catcher.call(file);
+                            catcher.call(file, stack);
                         }
                         else {
                             throw error;
@@ -114,14 +115,36 @@ public class ISBPL {
                 return (idx, words, file, stack) -> {
                     idx++;
                     AtomicInteger i = new AtomicInteger(idx);
-                    ISBPLCallable block = readBlock(i, words, stack, false);
+                    ISBPLCallable block = readBlock(i, words, false);
                     i.getAndIncrement();
-                    ISBPLCallable catcher = readBlock(i, words, stack, false);
+                    ISBPLCallable catcher = readBlock(i, words, false);
                     try {
-                        block.call(file);
+                        block.call(file, stack);
                     } finally {
-                        catcher.call(file);
+                        catcher.call(file, stack);
                     }
+                    return i.get();
+                };
+            case "fork":
+                return (idx, words, file, stack) -> {
+                    idx++;
+                    AtomicInteger i = new AtomicInteger(idx);
+                    Stack<ISBPLObject> s = (Stack<ISBPLObject>) stack.clone();
+                    ISBPLCallable block = readBlock(i, words, false);
+                    long tid = Thread.currentThread().getId();
+                    Stack<HashMap<String, ISBPLCallable>> fs = (Stack<HashMap<String, ISBPLCallable>>) functionStack.get().clone();
+                    new Thread(() -> {
+                        debuggerIPC.run.put(Thread.currentThread().getId(), debuggerIPC.run.get(tid) == -1 ? -1 : 0);
+                        debuggerIPC.stack.put(Thread.currentThread().getId(), s);
+                        functionStack.set(fs);
+                        try {
+                            block.call(file, s);
+                        } catch (ISBPLStop stop) {
+                            if(stop.amount == -1) {
+                                System.exit(exitCode);
+                            }
+                        }
+                    }).start();
                     return i.get();
                 };
             default:
@@ -130,18 +153,18 @@ public class ISBPL {
     }
     
     @SuppressWarnings("RedundantCast")
-    private void addNative(String name, Stack<ISBPLObject> stack) {
+    private void addNative(String name) {
         ISBPLCallable func = null;
         switch (name) {
             case "alen":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject o = stack.pop();
                     o.checkType(getType("array"));
                     stack.push(new ISBPLObject(getType("int"), ((ISBPLObject[]) o.object).length));
                 };
                 break;
             case "aget":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject i = stack.pop();
                     ISBPLObject o = stack.pop();
                     i.checkType(getType("int"));
@@ -150,7 +173,7 @@ public class ISBPL {
                 };
                 break;
             case "aput":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject toPut = stack.pop();
                     ISBPLObject i = stack.pop();
                     ISBPLObject o = stack.pop();
@@ -160,14 +183,14 @@ public class ISBPL {
                 };
                 break;
             case "anew":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject i = stack.pop();
                     i.checkType(getType("int"));
                     stack.push(new ISBPLObject(getType("array"), new ISBPLObject[((int) i.object)]));
                 };
                 break;
             case "_array":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject a = stack.pop();
                     if(a.type.equals(getType("array")))
                         stack.push(a);
@@ -178,99 +201,99 @@ public class ISBPL {
                 };
                 break;
             case "_char":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject o = stack.pop();
                     o.checkTypeMulti(getType("int"), getType("byte"), getType("char"), getType("float"), getType("long"), getType("double"));
                     stack.push(new ISBPLObject(getType("char"), ((char) o.toLong())));
                 };
                 break;
             case "_byte":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject o = stack.pop();
                     o.checkTypeMulti(getType("int"), getType("byte"), getType("char"), getType("float"), getType("long"), getType("double"));
                     stack.push(new ISBPLObject(getType("byte"), ((byte) o.toLong())));
                 };
                 break;
             case "_int":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject o = stack.pop();
                     o.checkTypeMulti(getType("int"), getType("byte"), getType("char"), getType("float"), getType("long"), getType("double"));
                     stack.push(new ISBPLObject(getType("int"), ((int) o.toLong())));
                 };
                 break;
             case "_float":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject o = stack.pop();
                     o.checkTypeMulti(getType("int"), getType("byte"), getType("char"), getType("float"), getType("long"), getType("double"));
                     stack.push(new ISBPLObject(getType("float"), ((float) o.toDouble())));
                 };
                 break;
             case "_long":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject o = stack.pop();
                     o.checkTypeMulti(getType("int"), getType("byte"), getType("char"), getType("float"), getType("long"), getType("double"));
                     stack.push(new ISBPLObject(getType("long"), o.toLong()));
                 };
                 break;
             case "_double":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject o = stack.pop();
                     o.checkTypeMulti(getType("int"), getType("byte"), getType("char"), getType("float"), getType("long"), getType("double"));
                     stack.push(new ISBPLObject(getType("double"), o.toDouble()));
                 };
                 break;
             case "ischar":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject o = stack.pop();
                     stack.push(new ISBPLObject(getType("int"), o.type.equals(getType("char")) ? 1 : 0));
                 };
                 break;
             case "isbyte":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject o = stack.pop();
                     stack.push(new ISBPLObject(getType("int"), o.type.equals(getType("byte")) ? 1 : 0));
                 };
                 break;
             case "isint":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject o = stack.pop();
                     stack.push(new ISBPLObject(getType("int"), o.type.equals(getType("int")) ? 1 : 0));
                 };
                 break;
             case "isfloat":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject o = stack.pop();
                     stack.push(new ISBPLObject(getType("int"), o.type.equals(getType("float")) ? 1 : 0));
                 };
                 break;
             case "islong":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject o = stack.pop();
                     stack.push(new ISBPLObject(getType("int"), o.type.equals(getType("long")) ? 1 : 0));
                 };
                 break;
             case "isdouble":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject o = stack.pop();
                     stack.push(new ISBPLObject(getType("int"), o.type.equals(getType("double")) ? 1 : 0));
                 };
                 break;
             case "isarray":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject o = stack.pop();
                     stack.push(new ISBPLObject(getType("int"), o.type.equals(getType("array")) ? 1 : 0));
                 };
                 break;
             case "_layer_call":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject i = stack.pop();
                     ISBPLObject s = stack.pop();
                     i.checkType(getType("int"));
-                    functionStack.get(functionStack.size() - 1 - ((int) i.object)).get(toJavaString(s)).call(file);
+                    functionStack.get().get(functionStack.get().size() - 1 - ((int) i.object)).get(toJavaString(s)).call(file, stack);
                 };
                 break;
             case "reload":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     String filepath = getFilePathForInclude((Stack<ISBPLObject>) stack, file);
                     File f = new File(filepath).getAbsoluteFile();
                     try {
@@ -282,7 +305,7 @@ public class ISBPL {
                 };
                 break;
             case "include":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     String filepath = getFilePathForInclude((Stack<ISBPLObject>) stack, file);
                     if(!included.contains(filepath)) {
                         File f = new File(filepath).getAbsoluteFile();
@@ -297,28 +320,28 @@ public class ISBPL {
                 };
                 break;
             case "putchar":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject c = stack.pop();
                     c.checkType(getType("char"));
                     System.out.print(((char) c.object));
                 };
                 break;
             case "eputchar":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject c = stack.pop();
                     c.checkType(getType("char"));
                     System.err.print(((char) c.object));
                 };
                 break;
             case "_file":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject s = stack.pop();
                     File f = new File(toJavaString(s));
                     stack.push(new ISBPLObject(getType("file"), f));
                 };
                 break;
             case "read":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject end = stack.pop();
                     ISBPLObject begin = stack.pop();
                     ISBPLObject fileToRead = stack.pop();
@@ -346,14 +369,14 @@ public class ISBPL {
                 };
                 break;
             case "flength":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject f = stack.pop();
                     f.checkType(getType("file"));
                     stack.push(new ISBPLObject(getType("int"), ((int) ((File) f.object).length())));
                 };
                 break;
             case "write":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject content = stack.pop();
                     ISBPLObject fileToWrite = stack.pop();
                     content.checkType(getType("array"));
@@ -362,33 +385,33 @@ public class ISBPL {
                 };
                 break;
             case "getos":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     // TODO: This is not done yet, and it's horrible so far.
                     stack.push(toISBPLString("linux"));
                 };
                 break;
             case "mktype":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject s = stack.pop();
                     ISBPLType type = registerType(toJavaString(s));
                     stack.push(new ISBPLObject(getType("int"), type.id));
                 };
                 break;
             case "typename":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject i = stack.pop();
                     i.checkType(getType("int"));
                     stack.push(toISBPLString(types.get(((int) i.object)).name));
                 };
                 break;
             case "gettype":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject o = stack.pop();
                     stack.push(new ISBPLObject(getType("int"), o.type.id));
                 };
                 break;
             case "settype":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject i = stack.pop();
                     ISBPLObject o = stack.pop();
                     i.checkType(getType("int"));
@@ -396,7 +419,7 @@ public class ISBPL {
                 };
                 break;
             case "throw":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject message = stack.pop();
                     ISBPLObject type = stack.pop();
                     String msg = toJavaString(message);
@@ -405,7 +428,7 @@ public class ISBPL {
                 };
                 break;
             case "exit":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject code = stack.pop();
                     code.checkType(getType("int"));
                     exitCode = ((int) code.object);
@@ -413,14 +436,14 @@ public class ISBPL {
                 };
                 break;
             case "eq":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject o1 = stack.pop();
                     ISBPLObject o2 = stack.pop();
                     stack.push(new ISBPLObject(getType("int"), o1.equals(o2) ? 1 : 0));
                 };
                 break;
             case "gt":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject o2 = stack.pop();
                     ISBPLObject o1 = stack.pop();
                     o1.checkTypeMulti(getType("int"), getType("byte"), getType("char"), getType("float"), getType("long"), getType("double"));
@@ -429,7 +452,7 @@ public class ISBPL {
                 };
                 break;
             case "lt":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject o2 = stack.pop();
                     ISBPLObject o1 = stack.pop();
                     o1.checkTypeMulti(getType("int"), getType("byte"), getType("char"), getType("float"), getType("long"), getType("double"));
@@ -438,19 +461,19 @@ public class ISBPL {
                 };
                 break;
             case "not":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     stack.push(new ISBPLObject(getType("int"), stack.pop().isTruthy() ? 0 : 1));
                 };
                 break;
             case "neg":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject o = stack.pop();
                     o.checkTypeMulti(getType("int"), getType("byte"), getType("char"), getType("float"), getType("long"), getType("double"));
                     stack.push(new ISBPLObject(o.type, o.negative()));
                 };
                 break;
             case "or":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject o2 = stack.pop();
                     ISBPLObject o1 = stack.pop();
                     if(o1.isTruthy())
@@ -460,7 +483,7 @@ public class ISBPL {
                 };
                 break;
             case "and":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject o2 = stack.pop();
                     ISBPLObject o1 = stack.pop();
                     // Pushes either 1 or the failed object
@@ -475,7 +498,7 @@ public class ISBPL {
                 };
                 break;
             case "+":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject o2 = stack.pop();
                     ISBPLObject o1 = stack.pop();
                     o1.checkTypeMulti(getType("int"), getType("byte"), getType("char"), getType("float"), getType("long"), getType("double"));
@@ -508,7 +531,7 @@ public class ISBPL {
                 };
                 break;
             case "-":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject o2 = stack.pop();
                     ISBPLObject o1 = stack.pop();
                     o1.checkTypeMulti(getType("int"), getType("byte"), getType("char"), getType("float"), getType("long"), getType("double"));
@@ -541,7 +564,7 @@ public class ISBPL {
                 };
                 break;
             case "/":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     try {
                         ISBPLObject o2 = stack.pop();
                         ISBPLObject o1 = stack.pop();
@@ -578,7 +601,7 @@ public class ISBPL {
                 };
                 break;
             case "*":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject o2 = stack.pop();
                     ISBPLObject o1 = stack.pop();
                     o1.checkTypeMulti(getType("int"), getType("byte"), getType("char"), getType("float"), getType("long"), getType("double"));
@@ -611,7 +634,7 @@ public class ISBPL {
                 };
                 break;
             case "**":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject o2 = stack.pop();
                     ISBPLObject o1 = stack.pop();
                     o1.checkTypeMulti(getType("int"), getType("byte"), getType("char"), getType("float"), getType("long"), getType("double"));
@@ -644,7 +667,7 @@ public class ISBPL {
                 };
                 break;
             case "%":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     try {
                         ISBPLObject o2 = stack.pop();
                         ISBPLObject o1 = stack.pop();
@@ -681,7 +704,7 @@ public class ISBPL {
                 };
                 break;
             case "^":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject o2 = stack.pop();
                     ISBPLObject o1 = stack.pop();
                     o1.checkTypeMulti(getType("int"), getType("byte"), getType("char"), getType("long"));
@@ -708,17 +731,17 @@ public class ISBPL {
                 };
                 break;
             case "dup":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject o = stack.pop();
                     stack.push(new ISBPLObject(o.type, o.object));
                     stack.push(new ISBPLObject(o.type, o.object));
                 };
                 break;
             case "pop":
-                func = (File file) -> stack.pop();
+                func = (File file, Stack<ISBPLObject> stack) -> stack.pop();
                 break;
             case "swap":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject o1 = stack.pop();
                     ISBPLObject o2 = stack.pop();
                     stack.push(o2);
@@ -726,17 +749,17 @@ public class ISBPL {
                 };
                 break;
             case "_last_word":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject i = stack.pop();
                     i.checkType(getType("int"));
                     int n = (int) i.object;
-                    if(n >= lastWords.size())
+                    if(n >= lastWords.get().size())
                         throw new ISBPLError("IllegalArgument", "_last_words called with wrong argument");
-                    stack.push(toISBPLString(lastWords.get(n)));
+                    stack.push(toISBPLString(lastWords.get().get(n)));
                 };
                 break;
             case "time":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject i = stack.pop();
                     long n = (long) i.toLong();
                     try {
@@ -749,7 +772,7 @@ public class ISBPL {
                 };
                 break;
             case "stream":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     ISBPLObject action = stack.pop();
                     action.checkType(getType("int"));
                     int n = ((int) action.object);
@@ -762,7 +785,7 @@ public class ISBPL {
                 };
                 break;
             case "_enable_debug":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     if(debuggerIPC.threadID == -1) {
                         ISBPLDebugger debugger = new ISBPLDebugger(this);
                         debugger.start();
@@ -779,10 +802,10 @@ public class ISBPL {
                 };
                 break;
             case "_getvars":
-                func = (File file) -> {
-                    ISBPLObject[] objects = new ISBPLObject[functionStack.size()];
+                func = (File file, Stack<ISBPLObject> stack) -> {
+                    ISBPLObject[] objects = new ISBPLObject[functionStack.get().size()];
                     int i = 0;
-                    for (HashMap<String, ISBPLCallable> map : functionStack) {
+                    for (HashMap<String, ISBPLCallable> map : functionStack.get()) {
                         ArrayList<ISBPLObject> strings = new ArrayList<>();
                         for (String key : map.keySet()) {
                             if(key.startsWith("=")) {
@@ -796,12 +819,12 @@ public class ISBPL {
                 };
                 break;
             case "stacksize":
-                func = (File file) -> {
+                func = (File file, Stack<ISBPLObject> stack) -> {
                     stack.push(new ISBPLObject(getType("int"), stack.size()));
                 };
                 break;
         }
-        functionStack.peek().put(name, func);
+        functionStack.get().peek().put(name, func);
     }
     
     private String getFilePathForInclude(Stack<ISBPLObject> stack, File file) {
@@ -820,17 +843,17 @@ public class ISBPL {
         return filepath;
     }
     
-    private int createFunction(int i, String[] words, Stack<ISBPLObject> stack) {
+    private int createFunction(int i, String[] words) {
         i++;
         String name = words[i];
         AtomicInteger integer = new AtomicInteger(++i);
-        ISBPLCallable callable = readBlock(integer, words, stack, true);
+        ISBPLCallable callable = readBlock(integer, words, true);
         i = integer.get();
-        functionStack.peek().put(name, callable);
+        functionStack.get().peek().put(name, callable);
         return i;
     }
     
-    private ISBPLCallable readBlock(AtomicInteger idx, String[] words, Stack<ISBPLObject> stack, boolean isFunction) {
+    private ISBPLCallable readBlock(AtomicInteger idx, String[] words, boolean isFunction) {
         ArrayList<String> newWords = new ArrayList<>();
         int i = idx.get();
         i++;
@@ -847,7 +870,7 @@ public class ISBPL {
         }
         idx.set(i);
         String[] theWords = newWords.toArray(new String[0]);
-        return (file) -> interpretRaw(file, theWords, stack, isFunction);
+        return (file, stack) -> interpretRaw(file, theWords, stack, isFunction);
     }
     
     public String toJavaString(ISBPLObject string) {
@@ -903,7 +926,7 @@ public class ISBPL {
     
     private void interpretRaw(File file, String[] words, Stack<ISBPLObject> stack, boolean isFunction) {
         if(isFunction)
-            functionStack.push(new HashMap<>());
+            functionStack.get().push(new HashMap<>());
         try {
             for (int i = 0 ; i < words.length ; i++) {
                 String word = words[i];
@@ -911,42 +934,42 @@ public class ISBPL {
                     continue;
                 if(debug) {
                     String s = "";
-                    for (int x = 0 ; x < functionStack.size() ; x++) {
+                    for (int x = 0 ; x < functionStack.get().size() ; x++) {
                         s += "\t";
                     }
                     System.err.println(s + word + "\t\t" + stack);
                 }
-                while (debuggerIPC.run == 0) Thread.sleep(1);
-                if(debuggerIPC.run < 0) {
-                    if(debuggerIPC.run < -1) {
-                        if (debuggerIPC.run == -2) {
+                while (debuggerIPC.run.get(Thread.currentThread().getId()) == 0) Thread.sleep(1);
+                if(debuggerIPC.run.get(Thread.currentThread().getId()) < 0) {
+                    if(debuggerIPC.run.get(Thread.currentThread().getId()) < -1) {
+                        if (debuggerIPC.run.get(Thread.currentThread().getId()) == -2) {
                             if (word.equals(debuggerIPC.until)) {
-                                debuggerIPC.run = 0;
-                                while (debuggerIPC.run == 0) Thread.sleep(1);
+                                debuggerIPC.run.put(Thread.currentThread().getId(), 0);
+                                while (debuggerIPC.run.get(Thread.currentThread().getId()) == 0) Thread.sleep(1);
                             }
                         }
-                        if (debuggerIPC.run == -3 && Thread.currentThread().getId() != debuggerIPC.threadID) {
-                            while (debuggerIPC.run == -3) Thread.sleep(1);
+                        if (debuggerIPC.run.get(Thread.currentThread().getId()) == -3 && Thread.currentThread().getId() != debuggerIPC.threadID) {
+                            while (debuggerIPC.run.get(Thread.currentThread().getId()) == -3) Thread.sleep(1);
                         }
                     }
                 } else
-                    debuggerIPC.run--;
-                lastWords.add(0, word);
-                while(lastWords.size() > 16)
-                    lastWords.remove(lastWords.size() - 1);
+                    debuggerIPC.run.put(Thread.currentThread().getId(), debuggerIPC.run.get(Thread.currentThread().getId()) - 1);
+                lastWords.get().add(0, word);
+                while(lastWords.get().size() > 16)
+                    lastWords.get().remove(lastWords.get().size() - 1);
                 ISBPLKeyword keyword = getKeyword(word);
                 if (keyword != null) {
                     i = keyword.call(i, words, file, stack);
                     continue;
                 }
-                ISBPLCallable func = functionStack.peek().get(word);
+                ISBPLCallable func = functionStack.get().peek().get(word);
                 if(func != null) {
-                    func.call(file);
+                    func.call(file, stack);
                     continue;
                 }
-                func = functionStack.get(0).get(word);
+                func = functionStack.get().get(0).get(word);
                 if(func != null) {
-                    func.call(file);
+                    func.call(file, stack);
                     continue;
                 }
                 if (word.startsWith("\"")) {
@@ -981,7 +1004,7 @@ public class ISBPL {
         }
         finally {
             if(isFunction)
-                functionStack.pop();
+                functionStack.get().pop();
         }
     }
     
@@ -1049,11 +1072,12 @@ public class ISBPL {
     public static void main(String[] args) throws IOException {
         Stack<ISBPLObject> stack = new Stack<>();
         ISBPL isbpl = new ISBPL();
-        isbpl.debuggerIPC.stack = stack;
+        isbpl.debuggerIPC.stack.put(Thread.currentThread().getId(), stack);
         debug = !System.getenv().getOrDefault("DEBUG", "").equals("");
+        isbpl.debuggerIPC.run.put(Thread.currentThread().getId(), -1);
         if(debug) {
             new ISBPLDebugger(isbpl).start();
-            isbpl.debuggerIPC.run = 0;
+            isbpl.debuggerIPC.run.put(Thread.currentThread().getId(), 0);
         }
         try {
             File std = new File(System.getenv().getOrDefault("ISBPL_PATH", "/usr/lib/isbpl") + "/std.isbpl");
@@ -1095,7 +1119,7 @@ interface ISBPLKeyword {
 }
 
 interface ISBPLCallable {
-    void call(File file);
+    void call(File file, Stack<ISBPLObject> stack);
 }
 
 class ISBPLType {
@@ -1283,7 +1307,7 @@ class ISBPLError extends RuntimeException {
 class ISBPLStop extends RuntimeException {
     
     int amount;
-
+    
     public ISBPLStop(int amount) {
         this.amount = amount - 1;
     }
@@ -1292,6 +1316,7 @@ class ISBPLStop extends RuntimeException {
 class ISBPLDebugger extends Thread {
     private ISBPL isbpl;
     int port = -1;
+    long mainID = Thread.currentThread().getId();
     
     public ISBPLDebugger(ISBPL isbpl) {
         this.isbpl = isbpl;
@@ -1319,107 +1344,149 @@ class ISBPLDebugger extends Thread {
             isbpl.debuggerIPC.threadID = Thread.currentThread().getId();
             while (true) {
                 Socket s = socket.accept();
-                BufferedReader reader = new BufferedReader(new InputStreamReader(s.getInputStream()));
-                String line;
-                while ((line = reader.readLine()) != null) {
+                new Thread(() -> {
                     try {
-                        switch (line.split(" ")[0]) {
-                            case "continue":
-                            case "cont":
-                            case "c":
-                                isbpl.debuggerIPC.run = -1;
-                                break;
-                            case "stop":
-                            case "s":
-                                isbpl.debuggerIPC.run = 0;
-                                break;
-                            case "next":
-                            case "n":
-                                isbpl.debuggerIPC.run = 1;
-                                break;
-                            case "do":
-                            case "d":
-                                isbpl.debuggerIPC.run = Integer.parseInt(line.split(" ")[1]);
-                                break;
-                            case "until":
-                            case "u":
-                                isbpl.debuggerIPC.until = line.split(" ")[1];
-                                isbpl.debuggerIPC.run = -2;
-                                break;
-                            case "eval":
-                                isbpl.debuggerIPC.run = -3;
-                                isbpl.debuggerIPC.threadID = Thread.currentThread().getId();
-                                try {
-                                    isbpl.interpret(new File("_debug").getAbsoluteFile(), line.substring(5), isbpl.debuggerIPC.stack);
-                                } catch (ISBPLStop stop) {
-                                    System.exit(isbpl.exitCode);
-                                } catch (Throwable e) {
-                                    e.printStackTrace();
-                                    boolean fixed = false;
-                                    while (!fixed) {
+                        BufferedReader reader = new BufferedReader(new InputStreamReader(s.getInputStream()));
+                        String line;
+                        long tid = mainID;
+                        while ((line = reader.readLine()) != null) {
+                            try {
+                                switch (line.split(" ")[0]) {
+                                    case "continue":
+                                    case "cont":
+                                    case "c":
+                                        isbpl.debuggerIPC.run.put(tid, -1);
+                                        break;
+                                    case "stop":
+                                    case "s":
+                                        isbpl.debuggerIPC.run.put(tid, 0);
+                                        break;
+                                    case "next":
+                                    case "n":
+                                        isbpl.debuggerIPC.run.put(tid, 1);
+                                        break;
+                                    case "nextall":
+                                    case "na":
+                                        isbpl.debuggerIPC.run.replaceAll((i, v) -> 1);
+                                        break;
+                                    case "do":
+                                    case "d":
+                                        isbpl.debuggerIPC.run.put(tid, Integer.parseInt(line.split(" ")[1]));
+                                        break;
+                                    case "until":
+                                    case "u":
+                                        isbpl.debuggerIPC.until = line.split(" ")[1];
+                                        isbpl.debuggerIPC.run.put(tid, -2);
+                                        break;
+                                    case "eval":
+                                        isbpl.debuggerIPC.run.put(tid, -3);
+                                        isbpl.debuggerIPC.threadID = Thread.currentThread().getId();
                                         try {
-                                            System.err.println("Stack recovered: " + isbpl.debuggerIPC.stack);
-                                            fixed = true;
+                                            isbpl.interpret(new File("_debug").getAbsoluteFile(), line.substring(5), isbpl.debuggerIPC.stack.get(tid));
                                         }
-                                        catch (Exception e1) {
+                                        catch (ISBPLStop stop) {
+                                            System.exit(isbpl.exitCode);
+                                        }
+                                        catch (Throwable e) {
                                             e.printStackTrace();
-                                            System.err.println("!!! STACK CORRUPTED!");
-                                            isbpl.debuggerIPC.stack.pop();
-                                            System.err.println("Popped. Trying again.");
-                                        }
-                                    }
-                                }
-                                break;
-                            case "dump":
-                                try {
-                                    System.err.println("VAR DUMP\n----------------");
-                                    for (HashMap<String, ISBPLCallable> map : isbpl.functionStack) {
-                                        for (String key : map.keySet()) {
-                                            if(key.startsWith("=")) {
-                                                map.get(key.substring(1)).call(new File("_debug").getAbsoluteFile());
-                                                System.err.println("\t" + key.substring(1) + ": \t" + isbpl.debuggerIPC.stack.pop());
+                                            boolean fixed = false;
+                                            while (!fixed) {
+                                                try {
+                                                    System.err.println("Stack recovered: " + isbpl.debuggerIPC.stack.get(tid));
+                                                    fixed = true;
+                                                }
+                                                catch (Exception e1) {
+                                                    e.printStackTrace();
+                                                    System.err.println("!!! STACK CORRUPTED!");
+                                                    isbpl.debuggerIPC.stack.get(tid).pop();
+                                                    System.err.println("Popped. Trying again.");
+                                                }
                                             }
                                         }
-                                        System.err.println("----------------");
-                                    }
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                    System.err.println("!!! VARS CORRUPTED! CANNOT FIX AUTOMATICALLY.");
-                                }
-                            case "stack":
-                                boolean fixed = false;
-                                while (!fixed) {
-                                    try {
-                                        System.err.println("STACK DUMP");
-                                        for (ISBPLObject object : isbpl.debuggerIPC.stack) {
-                                            System.err.println("\t" + object);
+                                        break;
+                                    case "dump":
+                                        try {
+                                            System.err.println("VAR DUMP\n----------------");
+                                            for (HashMap<String, ISBPLCallable> map : isbpl.functionStack.map.get(tid)) {
+                                                for (String key : map.keySet()) {
+                                                    if (key.startsWith("=")) {
+                                                        map.get(key.substring(1)).call(new File("_debug").getAbsoluteFile(), isbpl.debuggerIPC.stack.get(tid));
+                                                        System.err.println("\t" + key.substring(1) + ": \t" + isbpl.debuggerIPC.stack.get(tid).pop());
+                                                    }
+                                                }
+                                                System.err.println("----------------");
+                                            }
                                         }
-                                        fixed = true;
-                                    }
-                                    catch (Exception e) {
-                                        e.printStackTrace();
-                                        System.err.println("!!! STACK CORRUPTED!");
-                                        isbpl.debuggerIPC.stack.pop();
-                                        System.err.println("Popped. Trying again.");
-                                    }
+                                        catch (Exception e) {
+                                            e.printStackTrace();
+                                            System.err.println("!!! VARS CORRUPTED! CANNOT FIX AUTOMATICALLY.");
+                                        }
+                                    case "stack":
+                                        boolean fixed = false;
+                                        while (!fixed) {
+                                            try {
+                                                System.err.println("STACK DUMP");
+                                                for (ISBPLObject object : isbpl.debuggerIPC.stack.get(tid)) {
+                                                    System.err.println("\t" + object);
+                                                }
+                                                fixed = true;
+                                            }
+                                            catch (Exception e) {
+                                                e.printStackTrace();
+                                                System.err.println("!!! STACK CORRUPTED!");
+                                                isbpl.debuggerIPC.stack.get(tid).pop();
+                                                System.err.println("Popped. Trying again.");
+                                            }
+                                        }
+                                        break;
+                                    case "son":
+                                        ISBPL.debug = true;
+                                        break;
+                                    case "soff":
+                                        ISBPL.debug = false;
+                                        break;
+                                    case "exit":
+                                        System.exit(255);
+                                        break;
+                                    case "threads":
+                                        System.err.println("THREAD DUMP");
+                                        for (Thread thread : Thread.getAllStackTraces().keySet()) {
+                                            if (isbpl.debuggerIPC.stack.containsKey(thread.getId()))
+                                                System.err.println(thread.getId() + "\t" + thread.getName());
+                                        }
+                                        break;
+                                    case "setthread":
+                                    case "st":
+                                        long l = Long.parseLong(line.split(" ")[1]);
+                                        if (isbpl.debuggerIPC.stack.containsKey(l)) {
+                                            tid = l;
+                                            System.err.println("Set TID=" + l);
+                                        }
+                                        else
+                                            System.err.println("Thread not valid");
+                                        break;
+                                    default:
+                                        break;
                                 }
-                                break;
-                            case "son":
-                                ISBPL.debug = true;
-                                break;
-                            case "soff":
-                                ISBPL.debug = false;
-                                break;
-                            case "exit":
-                                System.exit(255);
-                                break;
-                            default:
-                                break;
+                            }
+                            catch (Exception e) {
+                                try {
+                                    e.printStackTrace(new PrintStream(s.getOutputStream()));
+                                }
+                                catch (IOException ex) {
+                                    ex.printStackTrace();
+                                }
+                            }
                         }
-                    } catch (Exception e) {
-                        e.printStackTrace(new PrintStream(s.getOutputStream()));
+                    } catch (IOException e) {
+                        try {
+                            s.close();
+                        }
+                        catch (IOException ex) {
+                            ex.printStackTrace();
+                        }
                     }
-                }
+                }).start();
             }
         }
         catch (IOException e) {
@@ -1430,8 +1497,8 @@ class ISBPLDebugger extends Thread {
     static class IPC {
         long threadID = -1;
         String until = null;
-        int run = -1;
-        Stack<ISBPLObject> stack = null;
+        HashMap<Long, Integer> run = new HashMap<>();
+        HashMap<Long, Stack<ISBPLObject>> stack = new HashMap<>();
         
     }
 }
@@ -1451,12 +1518,12 @@ class ISBPLStreamer {
         final OutputStream out;
         static int gid = 0;
         final int id = gid++;
-    
+        
         public ISBPLStream(InputStream in, OutputStream out) {
             this.in = in;
             this.out = out;
         }
-    
+        
         public void close() throws IOException {
             this.in.close();
             this.out.close();
@@ -1545,5 +1612,29 @@ class ISBPLStreamer {
             default:
                 throw new ISBPLError("NotImplemented", "Not implemented");
         }
+    }
+}
+
+class ISBPLThreadLocal<T> {
+    HashMap<Long, T> map = new HashMap<>();
+    Supplier<? extends T> supplier;
+    
+    public ISBPLThreadLocal(Supplier<? extends T> supplier) {
+        this.supplier = supplier;
+    }
+    
+    public static <T> ISBPLThreadLocal<T> withInitial(Supplier<? extends T> supplier) {
+        return new ISBPLThreadLocal<>(supplier);
+    }
+    
+    public T get() {
+        long tid = Thread.currentThread().getId();
+        if(!map.containsKey(tid))
+            map.put(tid, supplier.get());
+        return map.get(tid);
+    }
+    
+    public T set(T t) {
+        return map.put(Thread.currentThread().getId(), t);
     }
 }
