@@ -140,7 +140,7 @@ public class ISBPL {
                         try {
                             block.call(file, s);
                         } catch (ISBPLStop stop) {
-                            if(stop.amount == -1) {
+                            if(stop.amount < 0) {
                                 System.exit(exitCode);
                             }
                         }
