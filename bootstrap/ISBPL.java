@@ -24,12 +24,13 @@ public class ISBPL {
     int exitCode;
     private final ISBPLStreamer streamer = new ISBPLStreamer(this);
     ArrayList<String> included = new ArrayList<>();
+    HashMap<String, ISBPLCallable> natives = new HashMap<>();
     
     public ISBPL() {
         functionStack.get().push(new HashMap<>());
     }
     
-    public ISBPLKeyword getKeyword(String word) {
+    private ISBPLKeyword getKeyword(String word) {
         switch (word) {
             case "native":
                 return (idx, words, file, stack) -> {
@@ -140,7 +141,7 @@ public class ISBPL {
                         try {
                             block.call(file, s);
                         } catch (ISBPLStop stop) {
-                            if(stop.amount < 0) {
+                            if(stop.amount == -1) {
                                 System.exit(exitCode);
                             }
                         }
@@ -822,6 +823,9 @@ public class ISBPL {
                 func = (File file, Stack<ISBPLObject> stack) -> {
                     stack.push(new ISBPLObject(getType("int"), stack.size()));
                 };
+                break;
+            default:
+                func = natives.get(name);
                 break;
         }
         functionStack.get().peek().put(name, func);
