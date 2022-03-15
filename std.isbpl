@@ -62,6 +62,8 @@ native **
 native %
 native ^
 
+native fcall
+
 func ++ { 1 + }
 func -- { 1 - }
 
@@ -77,6 +79,7 @@ def TYPE_BYTE "byte" mktype =TYPE_BYTE
 def TYPE_FLOAT "float" mktype =TYPE_FLOAT
 def TYPE_LONG "long" mktype =TYPE_LONG
 def TYPE_DOUBLE "double" mktype =TYPE_DOUBLE
+def TYPE_FUNCTION "func" mktype =TYPE_FUNCTION
 def TYPE_ARRAY "array" mktype =TYPE_ARRAY
 
 def TYPE_STRING "string" mktype =TYPE_STRING
