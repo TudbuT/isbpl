@@ -797,10 +797,8 @@ public class ISBPL {
                         catch (InterruptedException e) {
                             e.printStackTrace();
                         }
-                        stack.push(new ISBPLObject(getType("int"), debugger.port));
                     }
-                    else
-                        stack.push(new ISBPLObject(getType("int"), 0));
+                    stack.push(new ISBPLObject(getType("int"), debugger.port));
                 };
                 break;
             case "_getvars":
