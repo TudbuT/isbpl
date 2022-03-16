@@ -102,7 +102,7 @@ public class ISBPL {
                     try {
                         block.call(stack);
                     } catch (ISBPLError error) {
-                        if (Arrays.asList(allowed).contains(error.type) || allowed.length != 1 && allowed[0].equals("all")) {
+                        if (Arrays.asList(allowed).contains(error.type) || allowed.length == 1 && allowed[0].equals("all")) {
                             stack.push(toISBPLString(error.message));
                             stack.push(toISBPLString(error.type));
                             catcher.call(stack);
