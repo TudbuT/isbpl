@@ -746,8 +746,8 @@ public class ISBPL {
                 func = (Stack<ISBPLObject> stack) -> {
                     ISBPLObject o1 = stack.pop();
                     ISBPLObject o2 = stack.pop();
-                    stack.push(o2);
                     stack.push(o1);
+                    stack.push(o2);
                 };
                 break;
             case "_last_word":
@@ -798,7 +798,7 @@ public class ISBPL {
                             e.printStackTrace();
                         }
                     }
-                    stack.push(new ISBPLObject(getType("int"), debugger.port));
+                    stack.push(new ISBPLObject(getType("int"), debuggerIPC.port));
                 };
                 break;
             case "_getvars":
@@ -846,6 +846,7 @@ public class ISBPL {
         ISBPLObject s = stack.pop();
         String filepath = toJavaString(s);
         for (File f : file) {
+            filepath = toJavaString(s);
             processPath:
             {
                 if (filepath.startsWith("/"))
@@ -1366,6 +1367,7 @@ class ISBPLDebugger extends Thread {
                     catch (BindException ignored) { }
                 }
             }
+            isbpl.debuggerIPC.port = port;
             isbpl.debuggerIPC.threadID = Thread.currentThread().getId();
             while (true) {
                 Socket s = socket.accept();
@@ -1524,6 +1526,7 @@ class ISBPLDebugger extends Thread {
         String until = null;
         HashMap<Long, Integer> run = new HashMap<>();
         HashMap<Long, Stack<ISBPLObject>> stack = new HashMap<>();
+        int port = -1;
         
     }
 }
