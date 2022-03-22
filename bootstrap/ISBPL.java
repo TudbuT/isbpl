@@ -792,7 +792,7 @@ public class ISBPL {
                         ISBPLDebugger debugger = new ISBPLDebugger(this);
                         debugger.start();
                         try {
-                            while(debugger.port == -1) Thread.sleep(1);
+                            while(debuggerIPC.threadID == -1) Thread.sleep(1);
                         }
                         catch (InterruptedException e) {
                             e.printStackTrace();

@@ -378,3 +378,7 @@ func struppercase {
     }
     s _string
 }
+
+func main {
+    pop 0
+}
