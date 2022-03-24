@@ -830,6 +830,15 @@ public class ISBPL {
                     ((ISBPLCallable) o.object).call(stack);
                 };
                 break;
+            case "subprocess":
+                func = (Stack<ISBPLObject> stack) -> {
+                    try {
+                        Runtime.getRuntime().exec(toJavaString(stack.pop()));
+                    } catch(IOException e) {
+                        throw new ISBPLError("IO", "Couldn't start process");
+                    }
+                };
+                break;
             default:
                 func = natives.get(name);
                 break;
