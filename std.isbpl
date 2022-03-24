@@ -33,6 +33,7 @@ native _layer_call
 func call {
     1 _layer_call
 }
+native subprocess
 "This returns the last word as a string, from an index." #
 "index has to be <16, index 0 is this call" #
 native _last_word
