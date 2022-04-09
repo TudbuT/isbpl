@@ -127,6 +127,13 @@ public class ISBPL {
                     }
                     return i.get();
                 };
+            case "{": 
+                return (idx, words, file, stack) -> {
+                    AtomicInteger i = new AtomicInteger(idx);
+                    ISBPLCallable block = readBlock(i, words, file, false);
+                    stack.push(new ISBPLObject(getType("func"), block));
+                    return i.get();
+                };
             case "fork":
                 return (idx, words, file, stack) -> {
                     idx++;
