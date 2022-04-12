@@ -64,6 +64,7 @@ native %
 native ^
 
 native fcall
+native def
 
 func ++ { 1 + }
 func -- { 1 - }

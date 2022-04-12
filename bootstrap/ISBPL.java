@@ -15,6 +15,10 @@ import java.util.function.Supplier;
  */
 
 public class ISBPL {
+    // TODO: fully implement JIO
+    // public static final boolean ENABLE_JINTEROP = true;
+
+
     static boolean debug = false;
     public ISBPLDebugger.IPC debuggerIPC = new ISBPLDebugger.IPC();
     ArrayList<ISBPLType> types = new ArrayList<>();
@@ -844,6 +848,15 @@ public class ISBPL {
                     } catch(IOException e) {
                         throw new ISBPLError("IO", "Couldn't start process");
                     }
+                };
+                break;
+            case "def":
+                func = (stack) -> {
+                    ISBPLObject str = stack.pop();
+                    ISBPLObject callable = stack.pop();
+                    String s = toJavaString(str);
+                    callable.checkType(getType("func"));
+                    addFunction(s, (ISBPLCallable) callable.object);
                 };
                 break;
             default:
