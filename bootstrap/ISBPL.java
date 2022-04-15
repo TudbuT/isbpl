@@ -850,7 +850,7 @@ public class ISBPL {
                     }
                 };
                 break;
-            case "def":
+            case "deffunc":
                 func = (stack) -> {
                     ISBPLObject str = stack.pop();
                     ISBPLObject callable = stack.pop();
@@ -868,7 +868,19 @@ public class ISBPL {
                     callable.checkType(getType("func"));
                     ISBPLType t = types.get((int) type.object);
                     String s = toJavaString(str);
-                    t.methods.put(s, (ISBPLCallable) callable.object);
+                    addFunction(t, s, (ISBPLCallable) callable.object);
+                };
+                break;
+            case "deffield":
+                func = (stack) -> {
+                    ISBPLObject type = stack.pop();
+                    ISBPLObject str = stack.pop();
+                    type.checkType(getType("int"));
+                    ISBPLType t = types.get((int) type.object);
+                    String s = toJavaString(str);
+                    Object var = new Object();
+                    addFunction(t, s, (stack1) -> stack1.push(t.varget(stack1.pop()).get(var)));
+                    addFunction(t, "=" + s, (stack1) -> t.varget(stack1.pop()).put(var, stack1.pop()));
                 };
                 break;
             default:
@@ -876,6 +888,11 @@ public class ISBPL {
                 break;
         }
         addFunction(name, func);
+    }
+
+    public void addFunction(ISBPLType type, String name, ISBPLCallable callable) {
+        type.methods.put(name, callable);
+        type.methods.put("&" + name, stack -> stack.push(new ISBPLObject(getType("func"), callable)));
     }
     
     public void addFunction(String name, ISBPLCallable callable) {
@@ -1201,9 +1218,17 @@ class ISBPLType {
     int id = gid++;
     String name;
     HashMap<String, ISBPLCallable> methods = new HashMap<>();
+    HashMap<ISBPLObject, HashMap<Object, ISBPLObject>> vars = new HashMap<>();
     
     public ISBPLType(String name) {
         this.name = name;
+    }
+
+    public HashMap<Object, ISBPLObject> varget(ISBPLObject o) {
+        if(!vars.containsKey(o)) {
+            vars.put(o, new HashMap<>());
+        }
+        return vars.get(o);
     }
     
     @Override
