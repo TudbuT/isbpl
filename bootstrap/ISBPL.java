@@ -859,6 +859,18 @@ public class ISBPL {
                     addFunction(s, (ISBPLCallable) callable.object);
                 };
                 break;
+            case "defmethod":
+                func = (stack) -> {
+                    ISBPLObject type = stack.pop();
+                    ISBPLObject callable = stack.pop();
+                    ISBPLObject str = stack.pop();
+                    type.checkType(getType("int"));
+                    callable.checkType(getType("func"));
+                    ISBPLType t = types.get((int) type.object);
+                    String s = toJavaString(str);
+                    t.methods.put(s, (ISBPLCallable) callable.object);
+                };
+                break;
             default:
                 func = natives.get(name);
                 break;
@@ -1016,6 +1028,13 @@ public class ISBPL {
                 if (keyword != null) {
                     i = keyword.call(i, words, fileStack.get().peek(), stack);
                     continue;
+                }
+                if(stack.size() > 0) {
+                    ISBPLType type = stack.peek().type;
+                    if(type.methods.containsKey(word)) {
+                        type.methods.get(word).call(stack);
+                        continue;
+                    }
                 }
                 ISBPLCallable func = functionStack.get().peek().get(word);
                 if(func != null) {
@@ -1181,6 +1200,7 @@ class ISBPLType {
     static int gid = -2;
     int id = gid++;
     String name;
+    HashMap<String, ISBPLCallable> methods = new HashMap<>();
     
     public ISBPLType(String name) {
         this.name = name;
