@@ -45,4 +45,4 @@ OOP works like this:
 ```isbpl
 parameter1 parameter2 etc object method
 ```
-as explained above, methods are resolved separately, and it is therefore not required to define them in any other way.
+As explained above, methods are resolved separately, and it is therefore not required to define them in any other way.
