@@ -92,6 +92,11 @@ def TYPE_JIO "jio" mktype =TYPE_JIO
     native jio.class
     jio.class
 } TYPE_JIO defmethod
+"getclass" {
+    pop
+    native jio.getclass
+    jio.getclass
+} TYPE_JIO defmethod
 def JIO 0 TYPE_JIO settype =JIO
 
 def TYPE_STRING "string" mktype =TYPE_STRING

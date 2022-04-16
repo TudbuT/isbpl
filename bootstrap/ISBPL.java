@@ -892,6 +892,18 @@ public class ISBPL {
                     }
                 };
                 break;
+            case "jio.getclass":
+                func = (stack) -> {
+                    ISBPLObject str = stack.pop();
+                    String s = toJavaString(str);
+                    try {
+                        stack.push(toISBPL((Object) Class.forName(s)));
+                    }
+                    catch (ClassNotFoundException e) {
+                        throw new ISBPLError("JIO", "Class not found");
+                    }
+                };
+                break;
             default:
                 func = natives.get(name);
                 break;
