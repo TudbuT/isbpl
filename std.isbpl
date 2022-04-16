@@ -85,6 +85,7 @@ def TYPE_LONG "long" mktype =TYPE_LONG
 def TYPE_DOUBLE "double" mktype =TYPE_DOUBLE
 def TYPE_FUNCTION "func" mktype =TYPE_FUNCTION
 def TYPE_ARRAY "array" mktype =TYPE_ARRAY
+def TYPE_STRING "string" mktype =TYPE_STRING
 
 def TYPE_JIO "jio" mktype =TYPE_JIO
 "class" {
@@ -99,7 +100,6 @@ def TYPE_JIO "jio" mktype =TYPE_JIO
 } TYPE_JIO defmethod
 def JIO 0 TYPE_JIO settype =JIO
 
-def TYPE_STRING "string" mktype =TYPE_STRING
 func _string {
     def object =object
 

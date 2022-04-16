@@ -23,7 +23,8 @@ public class ISBPL {
     static boolean debug = false, printCalls = false;
     public ISBPLDebugger.IPC debuggerIPC = new ISBPLDebugger.IPC();
     ArrayList<ISBPLType> types = new ArrayList<>();
-    final ISBPLThreadLocal<Stack<HashMap<String, ISBPLCallable>>> functionStack = ISBPLThreadLocal.withInitial(Stack::new);
+    HashMap<String, ISBPLCallable> level0 = new HashMap<>();
+    final ISBPLThreadLocal<Stack<HashMap<String, ISBPLCallable>>> functionStack = ISBPLThreadLocal.withInitial(() -> { Stack<HashMap<String, ISBPLCallable>> stack = new Stack<>(); stack.push(level0); return stack; });
     final ISBPLThreadLocal<Stack<File>> fileStack = ISBPLThreadLocal.withInitial(Stack::new);
     HashMap<Object, ISBPLObject> vars = new HashMap<>();
     final ISBPLThreadLocal<ArrayList<String>> lastWords = ISBPLThreadLocal.withInitial(() -> new ArrayList<>(16));
@@ -148,7 +149,7 @@ public class ISBPL {
                     long tid = Thread.currentThread().getId();
                     Stack<HashMap<String, ISBPLCallable>> fs = (Stack<HashMap<String, ISBPLCallable>>) functionStack.get().clone();
                     new Thread(() -> {
-                        debuggerIPC.run.put(Thread.currentThread().getId(), debuggerIPC.run.get(tid) == -1 ? -1 : 0);
+                        debuggerIPC.run.put(Thread.currentThread().getId(), debuggerIPC.run.getOrDefault(tid, -1) == -1 ? -1 : 0);
                         debuggerIPC.stack.put(Thread.currentThread().getId(), s);
                         functionStack.set(fs);
                         try {
@@ -1089,14 +1090,14 @@ public class ISBPL {
     }
     
     public ISBPLType registerType(String name) {
-        ISBPLType type = new ISBPLType(name);
+        ISBPLType type = new ISBPLType(name, types.size());
         types.add(type);
         return type;
     }
     
     // These will die as soon as std creates the real types and any types created before these are replaced become invalid.
-    static final ISBPLType defaultTypeInt = new ISBPLType("int");
-    static final ISBPLType defaultTypeString = new ISBPLType("string");
+    static final ISBPLType defaultTypeInt = new ISBPLType("int", -2);
+    static final ISBPLType defaultTypeString = new ISBPLType("string", -1);
     
     public ISBPLType getType(String name) {
         for (int i = 0 ; i < types.size() ; i++) {
@@ -1329,14 +1330,14 @@ interface ISBPLCallable {
 }
 
 class ISBPLType {
-    static int gid = -2;
-    int id = gid++;
+    int id;
     String name;
     HashMap<String, ISBPLCallable> methods = new HashMap<>();
     HashMap<ISBPLObject, HashMap<Object, ISBPLObject>> vars = new HashMap<>();
     
-    public ISBPLType(String name) {
+    public ISBPLType(String name, int id) {
         this.name = name;
+        this.id = id;
     }
     
     public HashMap<Object, ISBPLObject> varget(ISBPLObject o) {
