@@ -21,10 +21,19 @@ func stream.readline {
     def array 0 anew =array
     def tmparray 0 anew =tmparray
     def i 1 neg =i
+    id STREAM.read stream =byte
+    byte -1 eq if {
+        -1
+        2 stop
+    }
     while { ( i 1 + =i ) ( byte 10 eq not ) } {
-        id STREAM.read stream =byte
         array ( ( array alen 1 + anew ) dup =tmparray ) 0 0 ( array alen ) acopy =array
         array dup alen 1 - byte _char aput
+        id STREAM.read stream =byte
+    }
+    array alen 0 eq if {
+        array _string
+        2 stop
     }
     array ( ( array alen 1 - anew ) dup =tmparray 0 0 ) ( tmparray alen ) acopy _string
 }

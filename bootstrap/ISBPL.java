@@ -1,4 +1,5 @@
 import java.io.*;
+import java.lang.reflect.*;
 import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -17,9 +18,9 @@ import java.util.function.Supplier;
 public class ISBPL {
     // TODO: fully implement JIO
     // public static final boolean ENABLE_JINTEROP = true;
-
-
-    static boolean debug = false;
+    
+    
+    static boolean debug = false, printCalls = false;
     public ISBPLDebugger.IPC debuggerIPC = new ISBPLDebugger.IPC();
     ArrayList<ISBPLType> types = new ArrayList<>();
     final ISBPLThreadLocal<Stack<HashMap<String, ISBPLCallable>>> functionStack = ISBPLThreadLocal.withInitial(Stack::new);
@@ -131,7 +132,7 @@ public class ISBPL {
                     }
                     return i.get();
                 };
-            case "{": 
+            case "{":
                 return (idx, words, file, stack) -> {
                     AtomicInteger i = new AtomicInteger(idx);
                     ISBPLCallable block = readBlock(i, words, file, false);
@@ -167,7 +168,7 @@ public class ISBPL {
     
     @SuppressWarnings("RedundantCast")
     private void addNative(String name) {
-        ISBPLCallable func = null;
+        ISBPLCallable func;
         switch (name) {
             case "alen":
                 func = (Stack<ISBPLObject> stack) -> {
@@ -474,9 +475,7 @@ public class ISBPL {
                 };
                 break;
             case "not":
-                func = (Stack<ISBPLObject> stack) -> {
-                    stack.push(new ISBPLObject(getType("int"), stack.pop().isTruthy() ? 0 : 1));
-                };
+                func = (Stack<ISBPLObject> stack) -> stack.push(new ISBPLObject(getType("int"), stack.pop().isTruthy() ? 0 : 1));
                 break;
             case "neg":
                 func = (Stack<ISBPLObject> stack) -> {
@@ -751,7 +750,7 @@ public class ISBPL {
                 };
                 break;
             case "pop":
-                func = (Stack<ISBPLObject> stack) -> stack.pop();
+                func = Stack::pop;
                 break;
             case "swap":
                 func = (Stack<ISBPLObject> stack) -> {
@@ -830,9 +829,7 @@ public class ISBPL {
                 };
                 break;
             case "stacksize":
-                func = (Stack<ISBPLObject> stack) -> {
-                    stack.push(new ISBPLObject(getType("int"), stack.size()));
-                };
+                func = (Stack<ISBPLObject> stack) -> stack.push(new ISBPLObject(getType("int"), stack.size()));
                 break;
             case "fcall":
                 func = (Stack<ISBPLObject> stack) -> {
@@ -883,13 +880,108 @@ public class ISBPL {
                     addFunction(t, "=" + s, (stack1) -> t.varget(stack1.pop()).put(var, stack1.pop()));
                 };
                 break;
+            case "jio.class":
+                func = (stack) -> {
+                    ISBPLObject str = stack.pop();
+                    String s = toJavaString(str);
+                    try {
+                        stack.push(toISBPL(Class.forName(s)));
+                    }
+                    catch (ClassNotFoundException e) {
+                        throw new ISBPLError("JIO", "Class not found");
+                    }
+                };
+                break;
             default:
                 func = natives.get(name);
                 break;
         }
         addFunction(name, func);
     }
-
+    
+    public ISBPLObject toISBPL(Class<?> clazz) {
+        ISBPLType type = getType(clazz.getName());
+        if(type == null) {
+            type = registerType(clazz.getName());
+            for (Field field : clazz.getDeclaredFields()) {
+                addFunction(type, field.getName(), stack -> {
+                    field.setAccessible(true);
+                    if(debug)
+                        System.err.println("Java Get: " + field);
+                    try {
+                        stack.push(toISBPL(field.get(stack.pop().object)));
+                    }
+                    catch (IllegalAccessException ignored) {
+                    }
+                });
+                addFunction(type, "=" + field.getName(), stack -> {
+                    field.setAccessible(true);
+                    if(debug)
+                        System.err.println("Java Set: " + field);
+                    try {
+                        field.set(stack.pop().object, fromISBPL(stack.pop()));
+                    }
+                    catch (IllegalAccessException ignored) {
+                    }
+                });
+            }
+            for (Method method : clazz.getDeclaredMethods()) {
+                addFunction(type, method.getName() + method.getParameterCount(), stack -> {
+                    method.setAccessible(true);
+                    Object o = stack.pop().object;
+                    Object[] params = new Object[method.getParameterCount()];
+                    for (int i = params.length - 1 ; i >= 0 ; i--) {
+                        params[i] = fromISBPL(stack.pop());
+                    }
+                    if(debug)
+                        System.err.println("Java Call: " + method + " - " + Arrays.toString(params));
+                    try {
+                        Object r = method.invoke(o, params);
+                        if(method.getReturnType() != void.class)
+                            stack.push(toISBPL(r));
+                    }
+                    catch (IllegalAccessException ignored) { }
+                    catch (InvocationTargetException e) {
+                        stack.push(toISBPL(e));
+                        throw new ISBPLError("Java", "Java error");
+                    }
+                });
+            }
+        }
+        return new ISBPLObject(type, null);
+    }
+    
+    private Object fromISBPL(ISBPLObject o) {
+        ISBPLType type = o.type;
+        if (type.equals(getType("string")))
+            return toJavaString(o);
+        if (type.equals(getType("array"))) {
+            ISBPLObject[] isbplArray = ((ISBPLObject[]) o.object);
+            Object[] array = new Object[isbplArray.length];
+            for (int i = 0 ; i < array.length ; i++) {
+                array[i] = fromISBPL(isbplArray[i]);
+            }
+            return array;
+        }
+        return o.object;
+    }
+    
+    public ISBPLObject toISBPL(Object object) {
+        ISBPLObject o = toISBPL(object.getClass());
+        if (object instanceof String) {
+            object = toISBPLString(((String) object));
+        }
+        if (object.getClass().isArray()) {
+            ISBPLObject[] isbplArray = new ISBPLObject[Array.getLength(object)];
+            for (int i = 0 ; i < isbplArray.length ; i++) {
+                isbplArray[i] = toISBPL(Array.get(object, i));
+            }
+            object = isbplArray;
+        }
+        o.object = object;
+        return o;
+    }
+    
     public void addFunction(ISBPLType type, String name, ISBPLCallable callable) {
         type.methods.put(name, callable);
         type.methods.put("&" + name, stack -> stack.push(new ISBPLObject(getType("func"), callable)));
@@ -1016,12 +1108,12 @@ public class ISBPL {
                 String word = words[i];
                 if (word.length() == 0)
                     continue;
-                if(debug) {
-                    String s = "";
+                if(printCalls) {
+                    StringBuilder s = new StringBuilder();
                     for (int x = 0 ; x < functionStack.get().size() ; x++) {
-                        s += "\t";
+                        s.append("\t");
                     }
-                    System.err.println(s + word + "\t\t" + stack);
+                    System.err.println(s + word + "\t\t" + (debug ? stack : ""));
                 }
                 while (debuggerIPC.run.get(Thread.currentThread().getId()) == 0) Thread.sleep(1);
                 if(debuggerIPC.run.get(Thread.currentThread().getId()) < 0) {
@@ -1105,7 +1197,7 @@ public class ISBPL {
         char[] chars = code.toCharArray();
         boolean isInString = false;
         boolean escaping = false;
-        String word = "";
+        StringBuilder word = new StringBuilder();
         for (int i = 0 ; i < chars.length ; i++) {
             char c = chars[i];
             if(isInString) {
@@ -1115,13 +1207,13 @@ public class ISBPL {
                         continue;
                 }
                 if(c == 'n' && escaping) {
-                    word += '\n';
+                    word.append('\n');
                     escaping = false;
                     continue;
                 }
                 if(c == 'r' && escaping) {
                     escaping = false;
-                    word += '\r';
+                    word.append('\r');
                     continue;
                 }
                 if(c == '"') {
@@ -1133,23 +1225,23 @@ public class ISBPL {
                         continue;
                     }
                 }
-                word += c;
+                word.append(c);
                 if(escaping)
                     throw new RuntimeException("Error parsing code: Invalid Escape.");
             }
             else if(c == '"' && word.length() == 0) {
-                word += '"';
+                word.append('"');
                 isInString = true;
             }
             else if(c == ' ') {
-                words.add(word);
-                word = "";
+                words.add(word.toString());
+                word = new StringBuilder();
             }
             else {
-                word += c;
+                word.append(c);
             }
         }
-        words.add(word);
+        words.add(word.toString());
         return words.toArray(new String[0]);
     }
     
@@ -1203,6 +1295,7 @@ public class ISBPL {
         }
         return bytes.toString();
     }
+    
 }
 
 interface ISBPLKeyword {
@@ -1223,7 +1316,7 @@ class ISBPLType {
     public ISBPLType(String name) {
         this.name = name;
     }
-
+    
     public HashMap<Object, ISBPLObject> varget(ISBPLObject o) {
         if(!vars.containsKey(o)) {
             vars.put(o, new HashMap<>());
@@ -1255,7 +1348,7 @@ class ISBPLType {
 
 class ISBPLObject {
     final ISBPLType type;
-    final Object object;
+    Object object;
     
     public ISBPLObject(ISBPLType type, Object object) {
         this.type = type;
@@ -1294,11 +1387,11 @@ class ISBPLObject {
         }
     }
     
-    public int checkTypeMulti(ISBPLType... wanted) {
+    public void checkTypeMulti(ISBPLType... wanted) {
         int f = -1;
-        String wantedNames = "";
+        StringBuilder wantedNames = new StringBuilder();
         for (int i = 0 ; i < wanted.length ; i++) {
-            wantedNames += " " + wanted[i].name;
+            wantedNames.append(" ").append(wanted[i].name);
             if(wanted[i].id == type.id) {
                 f = i;
                 break;
@@ -1307,7 +1400,6 @@ class ISBPLObject {
         if(f == -1) {
             throw new ISBPLError("IncompatibleTypes", "Incompatible types: " + type.name + " - " + wantedNames.substring(1));
         }
-        return f;
     }
     
     @Override
@@ -1414,7 +1506,7 @@ class ISBPLStop extends RuntimeException {
 }
 
 class ISBPLDebugger extends Thread {
-    private ISBPL isbpl;
+    private final ISBPL isbpl;
     int port = -1;
     long mainID = Thread.currentThread().getId();
     
@@ -1542,9 +1634,15 @@ class ISBPLDebugger extends Thread {
                                         break;
                                     case "son":
                                         ISBPL.debug = true;
+                                        ISBPL.printCalls = true;
+                                        break;
+                                    case "sonf":
+                                        ISBPL.debug = false;
+                                        ISBPL.printCalls = true;
                                         break;
                                     case "soff":
                                         ISBPL.debug = false;
+                                        ISBPL.printCalls = false;
                                         break;
                                     case "exit":
                                         System.exit(255);
@@ -1612,7 +1710,9 @@ class ISBPLStreamer {
     public static final int CLOSE =             3;
     public static final int READ =              4;
     public static final int WRITE =             5;
+    @SuppressWarnings("unused")
     public static final int AREAD =             6;
+    @SuppressWarnings("unused")
     public static final int AWRITE =            7;
     public static final int CREATE_SERVER =     9;
     
@@ -1652,7 +1752,7 @@ class ISBPLStreamer {
                 f = new File(isbpl.toJavaString(s));
                 stream = new ISBPLStream(new FileInputStream(f), new OutputStream() {
                     @Override
-                    public void write(int b) throws IOException {
+                    public void write(int b) {
                         throw new ISBPLError("IllegalArgument", "Can't write to a FILE_IN stream!");
                     }
                 });
@@ -1665,7 +1765,7 @@ class ISBPLStreamer {
                 f = new File(isbpl.toJavaString(s));
                 stream = new ISBPLStream(new InputStream() {
                     @Override
-                    public int read() throws IOException {
+                    public int read() {
                         throw new ISBPLError("IllegalArgument", "Can't read a FILE_OUT stream!");
                     }
                 }, new FileOutputStream(f));
@@ -1695,7 +1795,7 @@ class ISBPLStreamer {
                     }
                 }, new OutputStream() {
                     @Override
-                    public void write(int b) throws IOException {
+                    public void write(int b) {
                         throw new ISBPLError("IllegalArgument", "Can't write to a SERVER stream!");
                     }
                 });
@@ -1757,7 +1857,7 @@ class ISBPLThreadLocal<T> {
         return map.get(tid);
     }
     
-    public T set(T t) {
-        return map.put(Thread.currentThread().getId(), t);
+    public void set(T t) {
+        map.put(Thread.currentThread().getId(), t);
     }
 }

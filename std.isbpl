@@ -86,6 +86,14 @@ def TYPE_DOUBLE "double" mktype =TYPE_DOUBLE
 def TYPE_FUNCTION "func" mktype =TYPE_FUNCTION
 def TYPE_ARRAY "array" mktype =TYPE_ARRAY
 
+def TYPE_JIO "jio" mktype =TYPE_JIO
+"class" {
+    pop
+    native jio.class
+    jio.class
+} TYPE_JIO defmethod
+def JIO 0 TYPE_JIO settype =JIO
+
 def TYPE_STRING "string" mktype =TYPE_STRING
 func _string {
     def object =object
