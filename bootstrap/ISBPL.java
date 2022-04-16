@@ -915,6 +915,15 @@ public class ISBPL {
         ISBPLType type = getType(clazz.getName());
         if(type == null) {
             type = registerType(clazz.getName());
+            if (clazz.isEnum()) {
+                for (Object o : clazz.getEnumConstants()) {
+                    addFunction(type, o.toString(), stack -> {
+                        if(debug)
+                            System.err.println("Java GetEnum: " + o);
+                        stack.push(toISBPL(o));
+                    });
+                }
+            }
             for (Field field : clazz.getDeclaredFields()) {
                 addFunction(type, field.getName(), stack -> {
                     field.setAccessible(true);
@@ -1127,16 +1136,17 @@ public class ISBPL {
                     }
                     System.err.println(s + word + "\t\t" + (debug ? stack : ""));
                 }
-                while (debuggerIPC.run.get(Thread.currentThread().getId()) == 0) Thread.sleep(1);
-                if(debuggerIPC.run.get(Thread.currentThread().getId()) < 0) {
-                    if(debuggerIPC.run.get(Thread.currentThread().getId()) < -1) {
-                        if (debuggerIPC.run.get(Thread.currentThread().getId()) == -2) {
+                while (debuggerIPC.run.getOrDefault(Thread.currentThread().getId(), -1) == 0) Thread.sleep(1);
+                int rid = debuggerIPC.run.getOrDefault(Thread.currentThread().getId(), -1);
+                if(rid < 0) {
+                    if(rid < -1) {
+                        if (rid == -2) {
                             if (word.equals(debuggerIPC.until)) {
                                 debuggerIPC.run.put(Thread.currentThread().getId(), 0);
                                 while (debuggerIPC.run.get(Thread.currentThread().getId()) == 0) Thread.sleep(1);
                             }
                         }
-                        if (debuggerIPC.run.get(Thread.currentThread().getId()) == -3 && Thread.currentThread().getId() != debuggerIPC.threadID) {
+                        if (rid == -3 && Thread.currentThread().getId() != debuggerIPC.threadID) {
                             while (debuggerIPC.run.get(Thread.currentThread().getId()) == -3) Thread.sleep(1);
                         }
                     }
