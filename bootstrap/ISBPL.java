@@ -203,7 +203,11 @@ public class ISBPL {
                 func = (Stack<ISBPLObject> stack) -> {
                     ISBPLObject i = stack.pop();
                     i.checkType(getType("int"));
-                    stack.push(new ISBPLObject(getType("array"), new ISBPLObject[((int) i.object)]));
+                    ISBPLObject[] arr = new ISBPLObject[((int) i.object)];
+                    for (int j = 0 ; j < arr.length ; j++) {
+                        arr[j] = new ISBPLObject(getType("null"), 0);
+                    }
+                    stack.push(new ISBPLObject(getType("array"), arr));
                 };
                 break;
             case "_array":
@@ -907,6 +911,11 @@ public class ISBPL {
                     }
                 };
                 break;
+            case "null":
+                func = (stack) -> {
+                    stack.push(new ISBPLObject(getType("null"), 0));
+                };
+                break;
             default:
                 func = natives.get(name);
                 break;
@@ -978,12 +987,35 @@ public class ISBPL {
                     }
                 });
             }
+            for (Constructor<?> constructor : clazz.getDeclaredConstructors()) {
+                addFunction(type, "new" + constructor.getParameterCount(), stack -> {
+                    constructor.setAccessible(true);
+                    Object[] params = new Object[constructor.getParameterCount()];
+                    for (int i = params.length - 1 ; i >= 0 ; i--) {
+                        params[i] = fromISBPL(stack.pop());
+                    }
+                    if(debug)
+                        System.err.println("Java Call: new - " + Arrays.toString(params));
+                    try {
+                        Object r = constructor.newInstance(params);
+                        stack.push(toISBPL(r));
+                    }
+                    catch (IllegalAccessException ignored) { }
+                    catch (InvocationTargetException | InstantiationException e) {
+                        stack.push(toISBPL(e));
+                        throw new ISBPLError("Java", "Java error");
+                    }
+                });
+            }
         }
         return new ISBPLObject(type, null);
     }
     
     private Object fromISBPL(ISBPLObject o) {
         ISBPLType type = o.type;
+        if (type.equals(getType("null"))) {
+            return null;
+        }
         if (type.equals(getType("string")))
             return toJavaString(o);
         if (type.equals(getType("array"))) {
@@ -998,6 +1030,9 @@ public class ISBPL {
     }
     
     public ISBPLObject toISBPL(Object object) {
+        if(object == null) {
+            return new ISBPLObject(getType("null"), 0);
+        }
         ISBPLObject o = toISBPL(object.getClass());
         if (object instanceof String) {
             object = toISBPLString(((String) object));
