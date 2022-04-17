@@ -6,7 +6,9 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Stack;
+import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
@@ -916,6 +918,13 @@ public class ISBPL {
         ISBPLType type = getType(clazz.getName());
         if(type == null) {
             type = registerType(clazz.getName());
+            Class<?> superClass = clazz.getSuperclass();
+            if (superClass != null)
+                type.superTypes.add(toISBPL(superClass).type);
+            Class<?>[] interfaces = clazz.getInterfaces();
+            for(Class<?> c : interfaces) {
+                type.superTypes.add(toISBPL(c).type);
+            }
             if (clazz.isEnum()) {
                 for (Object o : clazz.getEnumConstants()) {
                     addFunction(type, o.toString(), stack -> {
@@ -1126,7 +1135,7 @@ public class ISBPL {
         if(isFunction)
             functionStack.get().push(new HashMap<>());
         try {
-            for (int i = 0 ; i < words.length ; i++) {
+            nextWord: for (int i = 0 ; i < words.length ; i++) {
                 String word = words[i];
                 if (word.length() == 0)
                     continue;
@@ -1162,10 +1171,17 @@ public class ISBPL {
                     continue;
                 }
                 if(stack.size() > 0) {
+                    // Doing this nonrecursively because it's much better despite the slight readability disadvantage.
                     ISBPLType type = stack.peek().type;
-                    if(type.methods.containsKey(word)) {
-                        type.methods.get(word).call(stack);
-                        continue;
+                    Queue<ISBPLType> types = new LinkedList<>();
+                    types.add(type);
+                    while (!types.isEmpty()) {
+                        type = types.poll();
+                        types.addAll(type.superTypes);
+                        if(type.methods.containsKey(word)) {
+                            type.methods.get(word).call(stack);
+                            continue nextWord;
+                        }
                     }
                 }
                 ISBPLCallable func = functionStack.get().peek().get(word);
@@ -1334,6 +1350,7 @@ class ISBPLType {
     String name;
     HashMap<String, ISBPLCallable> methods = new HashMap<>();
     HashMap<ISBPLObject, HashMap<Object, ISBPLObject>> vars = new HashMap<>();
+    ArrayList<ISBPLType> superTypes = new ArrayList<>();
     
     public ISBPLType(String name, int id) {
         this.name = name;
