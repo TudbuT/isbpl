@@ -999,6 +999,7 @@ public class ISBPL {
             for (Constructor<?> constructor : clazz.getDeclaredConstructors()) {
                 addFunction(type, "new" + constructor.getParameterCount(), stack -> {
                     constructor.setAccessible(true);
+                    stack.pop();
                     Object[] params = new Object[constructor.getParameterCount()];
                     for (int i = params.length - 1 ; i >= 0 ; i--) {
                         params[i] = fromISBPL(stack.pop());
