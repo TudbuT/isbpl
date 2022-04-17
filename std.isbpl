@@ -67,6 +67,7 @@ native fcall
 native deffunc
 native defmethod
 native deffield
+native callmethod
 
 func ++ { 1 + }
 func -- { 1 - }

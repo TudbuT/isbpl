@@ -887,6 +887,15 @@ public class ISBPL {
                     addFunction(t, "=" + s, (stack1) -> t.varget(stack1.pop()).put(var, stack1.pop()));
                 };
                 break;
+            case "callmethod":
+                func = (stack) -> {
+                    ISBPLObject obj = stack.pop();
+                    ISBPLObject str = stack.pop();
+                    String s = toJavaString(str);
+                    stack.push(obj);
+                    obj.type.methods.get(s).call(stack);
+                };
+                break;
             case "jio.class":
                 func = (stack) -> {
                     ISBPLObject str = stack.pop();

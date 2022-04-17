@@ -2,3 +2,22 @@
 def iota_storage 0 =iota_storage
 func iota { iota_storage dup ++ =iota_storage }
 func riota { 0 1 =iota_storage }
+
+def enum_storage 0 =enum_storage
+def enum_type_storage 0 =enum_type_storage
+def enum_holder_storage 0 =enum_holder_storage
+
+func mkenum {
+    mktype =enum_type_storage
+    0 =enum_storage
+    -1 enum_type_storage settype dup =enum_holder_storage
+}
+
+func enum {
+    def name =name
+    def r enum_storage enum_type_storage settype =r
+    name enum_type_storage deffield
+    r "=" name strconcat enum_holder_storage callmethod
+    enum_storage inc
+    r
+}
