@@ -67,6 +67,7 @@ native fcall
 native deffunc
 native defmethod
 native deffield
+native delete "deletes all field values from an object" #
 native callmethod
 
 func ++ { 1 + }
