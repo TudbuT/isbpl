@@ -28,6 +28,7 @@ public class ISBPL {
     HashMap<String, ISBPLCallable> level0 = new HashMap<>();
     final ISBPLThreadLocal<Stack<HashMap<String, ISBPLCallable>>> functionStack = ISBPLThreadLocal.withInitial(() -> { Stack<HashMap<String, ISBPLCallable>> stack = new Stack<>(); stack.push(level0); return stack; });
     final ISBPLThreadLocal<Stack<File>> fileStack = ISBPLThreadLocal.withInitial(Stack::new);
+    HashMap<ISBPLCallable, Object> varLinks = new HashMap<>();
     HashMap<Object, ISBPLObject> vars = new HashMap<>();
     final ISBPLThreadLocal<ArrayList<String>> lastWords = ISBPLThreadLocal.withInitial(() -> new ArrayList<>(16));
     int exitCode;
@@ -53,8 +54,10 @@ public class ISBPL {
                 return (idx, words, file, stack) -> {
                     idx++;
                     Object var = new Object();
-                    addFunction(words[idx], (stack1) -> stack1.push(vars.get(var)));
+                    ISBPLCallable c;
+                    addFunction(words[idx], c = ((stack1) -> stack1.push(vars.get(var))));
                     addFunction("=" + words[idx], (stack1) -> vars.put(var, stack1.pop()));
+                    varLinks.put(c, var);
                     return idx;
                 };
             case "if":
@@ -1276,8 +1279,14 @@ public class ISBPL {
             e.printStackTrace();
         }
         finally {
-            if(isFunction)
-                functionStack.get().pop();
+            if(isFunction) {
+                HashMap<String, ISBPLCallable> fstack = functionStack.get().pop();
+                for(ISBPLCallable c : fstack.values()) {
+                    if(varLinks.containsKey(c)) {
+                        vars.remove(varLinks.remove(c));
+                    }
+                }
+            }
         }
     }
     
