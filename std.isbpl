@@ -101,6 +101,11 @@ def TYPE_JIO "jio" mktype =TYPE_JIO
     native jio.getclass
     jio.getclass
 } TYPE_JIO defmethod
+"context" {
+    pop
+    native jio.context
+    jio.context
+} TYPE_JIO defmethod
 def JIO 0 TYPE_JIO settype =JIO
 
 func _string {

@@ -920,6 +920,11 @@ public class ISBPL {
                     }
                 };
                 break;
+            case "jio.context":
+                func = (stack) -> {
+                    stack.push(toISBPL(this));
+                };
+                break;
             case "null":
                 func = (stack) -> {
                     stack.push(new ISBPLObject(getType("null"), 0));
@@ -1450,6 +1455,8 @@ class ISBPLObject {
         if(this == o) return true;
         if(!(o instanceof ISBPLObject)) return false;
         ISBPLObject object = (ISBPLObject) o;
+        if(!this.type.equals(object.type))
+            return false;
         if(this.object == object.object)
             return true;
         if(this.object == null)
