@@ -35,7 +35,7 @@ func stream.readline {
         array _string
         2 stop
     }
-    array ( ( array alen 1 - anew ) dup =tmparray 0 0 ) ( tmparray alen ) acopy _string
+    array _string
 }
 
 func stream.write {

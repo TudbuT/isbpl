@@ -36,10 +36,6 @@ public class ISBPL {
     ArrayList<String> included = new ArrayList<>();
     HashMap<String, ISBPLCallable> natives = new HashMap<>();
     
-    public ISBPL() {
-        functionStack.get().push(new HashMap<>());
-    }
-    
     private ISBPLKeyword getKeyword(String word) {
         switch (word) {
             case "native":
@@ -55,6 +51,7 @@ public class ISBPL {
                     idx++;
                     Object var = new Object();
                     ISBPLCallable c;
+                    vars.put(var, new ISBPLObject(getType("null"), 0));
                     addFunction(words[idx], c = ((stack1) -> stack1.push(vars.get(var))));
                     addFunction("=" + words[idx], (stack1) -> vars.put(var, stack1.pop()));
                     varLinks.put(c, var);
@@ -886,7 +883,7 @@ public class ISBPL {
                     ISBPLType t = types.get((int) type.object);
                     String s = toJavaString(str);
                     Object var = new Object();
-                    addFunction(t, s, (stack1) -> stack1.push(t.varget(stack1.pop()).get(var)));
+                    addFunction(t, s, (stack1) -> stack1.push(t.varget(stack1.pop()).getOrDefault(var, getNullObject())));
                     addFunction(t, "=" + s, (stack1) -> t.varget(stack1.pop()).put(var, stack1.pop()));
                 };
                 break;
@@ -933,11 +930,24 @@ public class ISBPL {
                     stack.push(new ISBPLObject(getType("null"), 0));
                 };
                 break;
+            case "delete":
+                func = (stack) -> {
+                    ISBPLObject o = stack.pop();
+                    o.type.vars.remove(o);
+                };
+                break;
             default:
                 func = natives.get(name);
                 break;
         }
         addFunction(name, func);
+    }
+
+    ISBPLObject nullObj = null;
+    public ISBPLObject getNullObject() {
+        if(nullObj == null)
+            nullObj = new ISBPLObject(getType("null"), 0);
+        return nullObj;
     }
     
     public ISBPLObject toISBPL(Class<?> clazz) {
