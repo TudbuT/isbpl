@@ -1217,7 +1217,7 @@ public class ISBPL {
                         if (rid == -2) {
                             if (word.equals(debuggerIPC.until)) {
                                 debuggerIPC.run.put(Thread.currentThread().getId(), 0);
-                                while (debuggerIPC.run.get(Thread.currentThread().getId()) == 0) Thread.sleep(1);
+                                while (debuggerIPC.run.get(Thread.currentThread().getId()) != -1) Thread.sleep(1);
                             }
                         }
                         if (rid == -3 && Thread.currentThread().getId() != debuggerIPC.threadID) {
