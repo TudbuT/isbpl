@@ -6,3 +6,44 @@ def TYPE_FILE "file" mktype =TYPE_FILE
 native read
 native flength
 native write
+
+def _.file.&read &read =_.file.&read
+func _.file.read {
+    _.file.&read fcall
+}
+def _.file.&flength &flength =_.file.&flength
+func _.file.flength {
+    _.file.&flength fcall
+}
+def _.file.&write &write =_.file.&write
+func _.file.write {
+    _.file.&write fcall
+}
+def _.file.&_file &_file =_.file.&_file
+func _.file._file {
+    _.file.&_file fcall
+}
+def _.file.&isfile &isfile =_.file.&isfile
+func _.file.isfile {
+    _.file.&isfile fcall
+}
+
+def File "java.io.File" JIO class =File
+def FileInputStream "java.io.FileInputStream" JIO class =FileInputStream
+
+"open" {
+    new1
+} File gettype defmethod
+
+"read" {
+    def this =this
+    def stream this FileInputStream new1 =stream
+    def bytes this length0 TYPE_LONG settype _int anew =bytes
+    def i 0 =i
+    while { i bytes alen lt } {
+        bytes i stream read0 _char aput
+        i inc
+    }
+    stream close0
+    bytes
+} File gettype defmethod
