@@ -977,7 +977,7 @@ public class ISBPL {
                     if(debug)
                         System.err.println("Java Set: " + field);
                     try {
-                        field.set(stack.pop().object, fromISBPL(stack.pop()));
+                        field.set(stack.pop().object, fromISBPL(stack.pop(), field.getType()));
                     }
                     catch (IllegalAccessException ignored) {
                     }
