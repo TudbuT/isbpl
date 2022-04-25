@@ -130,6 +130,7 @@ public class ISBPL {
                     }
                     return i.get();
                 };
+            // Returns closed function (func behaviour)
             case "{":
                 return (idx, words, file, stack) -> {
                     AtomicInteger i = new AtomicInteger(idx);
@@ -137,6 +138,7 @@ public class ISBPL {
                     stack.push(new ISBPLObject(getType("func"), block));
                     return i.get();
                 };
+            // Returns open function (lambda behaviour)
             case "?":
                 return (idx, words, file, stack) -> {
                     AtomicInteger i = new AtomicInteger(idx + 1);
