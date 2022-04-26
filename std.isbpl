@@ -109,6 +109,13 @@ def TYPE_JIO "jio" mktype =TYPE_JIO
 } TYPE_JIO defmethod
 def JIO 0 TYPE_JIO settype =JIO
 
+"foreach" {
+    def this =this
+    def lambda =lambda
+    def i 0 =i
+    while { i this alen lt } { lambda fcall i ++ =i }
+} TYPE_ARRAY defmethod
+
 func _string {
     def object =object
 
