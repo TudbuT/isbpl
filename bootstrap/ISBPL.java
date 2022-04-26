@@ -1604,7 +1604,7 @@ class ISBPLObject {
     }
     
     public boolean isTruthy() {
-        return object != null && object != Integer.valueOf(0) && object != Boolean.valueOf(false);
+        return object != null && object != Integer.valueOf(0) && !object.equals(Boolean.valueOf(false));
     }
     
     // This has heavy optimizations, please do not change unless necessary
