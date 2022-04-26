@@ -113,7 +113,7 @@ def JIO 0 TYPE_JIO settype =JIO
     def this =this
     def lambda =lambda
     def i 0 =i
-    while { i this alen lt } { lambda fcall i ++ =i }
+    while { i this alen lt } { this i aget lambda fcall i ++ =i }
 } TYPE_ARRAY defmethod
 
 func _string {
