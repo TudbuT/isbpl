@@ -116,6 +116,14 @@ def JIO 0 TYPE_JIO settype =JIO
     while { i this alen lt } { this i aget lambda fcall i ++ =i }
 } TYPE_ARRAY defmethod
 
+def TYPE_REFERENCE "reference" mktype =TYPE_REFERENCE
+"value" TYPE_REFERENCE deffield
+func reference {
+    def this 1 TYPE_REFERENCE settype =this
+    this =value
+    this
+}
+
 func _string {
     def object =object
 
