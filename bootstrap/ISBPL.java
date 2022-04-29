@@ -21,13 +21,13 @@ public class ISBPL {
     static boolean debug = false, printCalls = false;
     public ISBPLDebugger.IPC debuggerIPC = new ISBPLDebugger.IPC();
     ArrayList<ISBPLType> types = new ArrayList<>();
-    HashMap<String, ISBPLCallable> level0 = new HashMap<>();
-    final ISBPLThreadLocal<Stack<HashMap<String, ISBPLCallable>>> functionStack = ISBPLThreadLocal.withInitial(() -> {
-        Stack<HashMap<String, ISBPLCallable>> stack = new Stack<>();
-        stack.push(level0);
-        return stack;
-    });
+    ISBPLFrame level0 = new ISBPLFrame();
     final ISBPLThreadLocal<Stack<File>> fileStack = ISBPLThreadLocal.withInitial(Stack::new);
+    final ISBPLThreadLocal<Stack<ISBPLFrame>> frameStack = ISBPLThreadLocal.withInitial(() -> {
+        Stack<ISBPLFrame> frames = new Stack<>();
+        frames.push(level0);
+        return frames;
+    });
     HashMap<ISBPLCallable, Object> varLinks = new HashMap<>();
     HashMap<Object, ISBPLObject> vars = new HashMap<>();
     final ISBPLThreadLocal<ArrayList<String>> lastWords = ISBPLThreadLocal.withInitial(() -> new ArrayList<>(16));
@@ -62,7 +62,7 @@ public class ISBPL {
                 return (idx, words, file, stack) -> {
                     idx++;
                     AtomicInteger i = new AtomicInteger(idx);
-                    ISBPLCallable callable = readBlock(i, words, file, false);
+                    ISBPLCallable callable = readBlock(i, words, file);
                     if(stack.pop().isTruthy()) {
                         callable.call(stack);
                     }
@@ -72,9 +72,9 @@ public class ISBPL {
                 return (idx, words, file, stack) -> {
                     idx++;
                     AtomicInteger i = new AtomicInteger(idx);
-                    ISBPLCallable cond = readBlock(i, words, file, false);
+                    ISBPLCallable cond = readBlock(i, words, file);
                     i.getAndIncrement();
-                    ISBPLCallable block = readBlock(i, words, file, false);
+                    ISBPLCallable block = readBlock(i, words, file);
                     cond.call(stack);
                     while (stack.pop().isTruthy()) {
                         block.call(stack);
@@ -105,9 +105,9 @@ public class ISBPL {
                         }
                     }
                     AtomicInteger i = new AtomicInteger(idx);
-                    ISBPLCallable block = readBlock(i, words, file, false);
+                    ISBPLCallable block = readBlock(i, words, file);
                     i.getAndIncrement();
-                    ISBPLCallable catcher = readBlock(i, words, file, false);
+                    ISBPLCallable catcher = readBlock(i, words, file);
                     try {
                         block.call(stack);
                     } catch (ISBPLError error) {
@@ -135,9 +135,9 @@ public class ISBPL {
                 return (idx, words, file, stack) -> {
                     idx++;
                     AtomicInteger i = new AtomicInteger(idx);
-                    ISBPLCallable block = readBlock(i, words, file, false);
+                    ISBPLCallable block = readBlock(i, words, file);
                     i.getAndIncrement();
-                    ISBPLCallable catcher = readBlock(i, words, file, false);
+                    ISBPLCallable catcher = readBlock(i, words, file);
                     try {
                         block.call(stack);
                     } finally {
@@ -149,15 +149,7 @@ public class ISBPL {
             case "{":
                 return (idx, words, file, stack) -> {
                     AtomicInteger i = new AtomicInteger(idx);
-                    ISBPLCallable block = readBlock(i, words, file, true);
-                    stack.push(new ISBPLObject(getType("func"), block));
-                    return i.get();
-                };
-            // Returns open function (lambda behaviour)
-            case "?":
-                return (idx, words, file, stack) -> {
-                    AtomicInteger i = new AtomicInteger(idx + 1);
-                    ISBPLCallable block = readBlock(i, words, file, false);
+                    ISBPLCallable block = readBlock(i, words, file);
                     stack.push(new ISBPLObject(getType("func"), block));
                     return i.get();
                 };
@@ -170,8 +162,7 @@ public class ISBPL {
                         for(ISBPLObject obj : stack) {
                             s.push(obj);
                         }
-                        // This cant be a non-function, unless we clone vars aswell to avoid garbage collecting them accidentally.
-                        ISBPLCallable block = readBlock(i, words, file, true);
+                        ISBPLCallable block = readBlock(i, words, file);
                         long tid = Thread.currentThread().getId();
                         new Thread(() -> {
                             debuggerIPC.run.put(Thread.currentThread().getId(), debuggerIPC.run.getOrDefault(tid, -1) == -1 ? -1 : 0);
@@ -333,7 +324,7 @@ public class ISBPL {
                     ISBPLObject i = stack.pop();
                     ISBPLObject s = stack.pop();
                     i.checkType(getType("int"));
-                    functionStack.get().get(functionStack.get().size() - 1 - ((int) i.object)).get(toJavaString(s)).call(stack);
+                    frameStack.get().get(frameStack.get().size() - 1 - ((int) i.object)).resolve(toJavaString(s)).call(stack);
                 };
                 break;
             case "reload":
@@ -842,11 +833,11 @@ public class ISBPL {
                 break;
             case "_getvars":
                 func = (Stack<ISBPLObject> stack) -> {
-                    ISBPLObject[] objects = new ISBPLObject[functionStack.get().size()];
+                    ISBPLObject[] objects = new ISBPLObject[frameStack.get().size()];
                     int i = 0;
-                    for (HashMap<String, ISBPLCallable> map : functionStack.get()) {
+                    for (ISBPLFrame map : frameStack.get()) {
                         ArrayList<ISBPLObject> strings = new ArrayList<>();
-                        for (String key : map.keySet()) {
+                        for (String key : map.all().keySet()) {
                             if(key.startsWith("=")) {
                                 strings.add(toISBPLString(key.substring(1)));
                             }
@@ -1224,8 +1215,8 @@ public class ISBPL {
     }
     
     public void addFunction(String name, ISBPLCallable callable) {
-        functionStack.get().peek().put(name, callable);
-        functionStack.get().peek().put("&" + name, stack -> stack.push(new ISBPLObject(getType("func"), callable)));
+        frameStack.get().peek().add(name, callable);
+        frameStack.get().peek().add("&" + name, stack -> stack.push(new ISBPLObject(getType("func"), callable)));
     }
     
     private String getFilePathForInclude(Stack<ISBPLObject> stack, Stack<File> file) {
@@ -1253,13 +1244,13 @@ public class ISBPL {
         i++;
         String name = words[i];
         AtomicInteger integer = new AtomicInteger(++i);
-        ISBPLCallable callable = readBlock(integer, words, file, true);
+        ISBPLCallable callable = readBlock(integer, words, file);
         i = integer.get();
         addFunction(name, callable);
         return i;
     }
     
-    private ISBPLCallable readBlock(AtomicInteger idx, String[] words, File file, boolean isFunction) {
+    private ISBPLCallable readBlock(AtomicInteger idx, String[] words, File file) {
         ArrayList<String> newWords = new ArrayList<>();
         int i = idx.get();
         i++;
@@ -1276,10 +1267,24 @@ public class ISBPL {
         }
         idx.set(i);
         String[] theWords = newWords.toArray(new String[0]);
+        ISBPLFrame frame = frameStack.get().peek();
         return (stack) -> {
             fileStack.get().push(file);
-            interpretRaw(theWords, stack, isFunction);
-            fileStack.get().pop();
+            frameStack.get().push(new ISBPLFrame(frame));
+            try {
+                interpretRaw(theWords, stack);
+            } finally {
+                HashMap<String, ISBPLCallable> fstack = frameStack.get().pop().map;
+                for(Map.Entry<String, ISBPLCallable> c : fstack.entrySet()) {
+                    if(varLinks.containsKey(c.getValue())) {
+                        vars.remove(varLinks.remove(c.getValue()));
+                        if(printCalls) {
+                            System.err.println("Garbage collector: removed " + c.getKey());
+                        }
+                    }
+                }
+                fileStack.get().pop();
+            }
         };
     }
     
@@ -1332,13 +1337,11 @@ public class ISBPL {
         fileStack.get().push(file);
         code = cleanCode(code);
         String[] words = splitWords(code);
-        interpretRaw(words, stack, false);
+        interpretRaw(words, stack);
         fileStack.get().pop();
     }
     
-    private void interpretRaw(String[] words, Stack<ISBPLObject> stack, boolean isFunction) {
-        if(isFunction)
-            functionStack.get().push(new HashMap<>());
+    private void interpretRaw(String[] words, Stack<ISBPLObject> stack) {
         try {
             nextWord: for (int i = 0 ; i < words.length ; i++) {
                 String word = words[i];
@@ -1346,7 +1349,7 @@ public class ISBPL {
                     continue;
                 if(printCalls) {
                     StringBuilder s = new StringBuilder();
-                    for (int x = 0 ; x < functionStack.get().size() ; x++) {
+                    for (int x = 0 ; x < frameStack.get().size() ; x++) {
                         s.append("\t");
                     }
                     System.err.println(s + word + "\t\t" + (debug ? stack : ""));
@@ -1397,12 +1400,7 @@ public class ISBPL {
                         }
                     }
                 }
-                ISBPLCallable func = functionStack.get().peek().get(word);
-                if(func != null) {
-                    func.call(stack);
-                    continue;
-                }
-                func = functionStack.get().get(0).get(word);
+                ISBPLCallable func = frameStack.get().peek().resolve(word);
                 if(func != null) {
                     func.call(stack);
                     continue;
@@ -1436,19 +1434,6 @@ public class ISBPL {
         }
         catch (InterruptedException e) {
             e.printStackTrace();
-        }
-        finally {
-            if(isFunction) {
-                HashMap<String, ISBPLCallable> fstack = functionStack.get().pop();
-                for(Map.Entry<String, ISBPLCallable> c : fstack.entrySet()) {
-                    if(varLinks.containsKey(c.getValue())) {
-                        vars.remove(varLinks.remove(c.getValue()));
-                        if(printCalls) {
-                            System.err.println("Garbage collector: removed " + c.getKey());
-                        }
-                    }
-                }
-            }
         }
     }
     
@@ -1867,10 +1852,11 @@ class ISBPLDebugger extends Thread {
                                     case "dump":
                                         try {
                                             System.err.println("VAR DUMP\n----------------");
-                                            for (HashMap<String, ISBPLCallable> map : isbpl.functionStack.map.get(tid)) {
-                                                for (String key : map.keySet()) {
+                                            for (ISBPLFrame map : isbpl.frameStack.map.get(tid)) {
+                                                HashMap<String, ISBPLCallable> all = map.all();
+                                                for (String key : all.keySet()) {
                                                     if (key.startsWith("=")) {
-                                                        map.get(key.substring(1)).call(isbpl.debuggerIPC.stack.get(tid));
+                                                        all.get(key.substring(1)).call(isbpl.debuggerIPC.stack.get(tid));
                                                         System.err.println("\t" + key.substring(1) + ": \t" + isbpl.debuggerIPC.stack.get(tid).pop());
                                                     }
                                                 }
@@ -2138,8 +2124,37 @@ class ISBPLStack<T> extends Stack<T> {
     
     @Override
     public T push(T t) {
-        //if(t == null)
-            //throw new IllegalArgumentException("item is null");
+        if(t == null && false)
+            throw new IllegalArgumentException("item is null");
         return super.push(t);
+    }
+}
+
+class ISBPLFrame {
+    
+    public ISBPLFrame parent;
+    public HashMap<String, ISBPLCallable> map = new HashMap<>();
+    
+    public ISBPLFrame() { }
+    public ISBPLFrame(ISBPLFrame parentFrame) {
+        parent = parentFrame;
+    }
+    
+    public ISBPLCallable resolve(String name) {
+        if(map.containsKey(name))
+            return map.get(name);
+        if(parent != null)
+            return parent.resolve(name);
+        return null;
+    }
+    
+    public void add(String name, ISBPLCallable callable) {
+        map.put(name, callable);
+    }
+    
+    public HashMap<String, ISBPLCallable> all() {
+        HashMap<String, ISBPLCallable> r = parent == null ? new HashMap<>() : parent.all();
+        r.putAll(map);
+        return r;
     }
 }
