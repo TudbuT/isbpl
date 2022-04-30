@@ -184,6 +184,9 @@ public class ISBPL {
                                 if(stop.amount == -1) {
                                     System.exit(exitCode);
                                 }
+                            } catch (ISBPLError err) {
+                                if(err.type.equals("Java"))
+                                        ((Throwable)s.pop().object).printStackTrace();
                             }
                         }).start();
                         return i.get();
@@ -1090,6 +1093,7 @@ public class ISBPL {
         }
     }
     
+    // TODO: Resolve with subclass weight
     public Object[] resolve(AtomicInteger mid, Stack<ISBPLObject> stack, int paramCount, Class<?>[][] paramTypes) {
         ISBPLObject[] o = new ISBPLObject[paramCount];
         Object[][] params = new Object[paramTypes.length][paramCount];
@@ -1556,9 +1560,13 @@ public class ISBPL {
         return bytes.toString();
     }
     
+    // Used for theSafe
+    private static class FakeAccessibleObject {
+        boolean override;
+    }
     private static void forceAccessible(AccessibleObject thing) {
         try {
-        theSafe.putBoolean(thing, theSafe.objectFieldOffset(AccessibleObject.class.getDeclaredField("override")), true);
+            theSafe.putBoolean(thing, theSafe.objectFieldOffset(FakeAccessibleObject.class.getDeclaredField("override")), true);
         } catch(Exception e) { //we are doomed
             e.printStackTrace();
             System.err.println("Failed to set accessible property. We are doomed.");
