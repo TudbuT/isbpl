@@ -32,15 +32,13 @@ public class ISBPL {
     static boolean debug = false, printCalls = false;
     public ISBPLDebugger.IPC debuggerIPC = new ISBPLDebugger.IPC();
     ArrayList<ISBPLType> types = new ArrayList<>();
-    ISBPLFrame level0 = new ISBPLFrame();
+    ISBPLFrame level0 = new ISBPLFrame(this);
     final ISBPLThreadLocal<Stack<File>> fileStack = ISBPLThreadLocal.withInitial(Stack::new);
     final ISBPLThreadLocal<Stack<ISBPLFrame>> frameStack = ISBPLThreadLocal.withInitial(() -> {
         Stack<ISBPLFrame> frames = new Stack<>();
         frames.push(level0);
         return frames;
     });
-    HashMap<ISBPLCallable, Object> varLinks = new HashMap<>();
-    HashMap<Object, ISBPLObject> vars = new HashMap<>();
     final ISBPLThreadLocal<ArrayList<String>> lastWords = ISBPLThreadLocal.withInitial(() -> new ArrayList<>(16));
     int exitCode;
     private final ISBPLStreamer streamer = new ISBPLStreamer(this);
@@ -61,12 +59,7 @@ public class ISBPL {
             case "def":
                 return (idx, words, file, stack) -> {
                     idx++;
-                    Object var = new Object();
-                    ISBPLCallable c;
-                    vars.put(var, getNullObject());
-                    addFunction(words[idx], c = ((stack1) -> stack1.push(vars.get(var))));
-                    addFunction("=" + words[idx], (stack1) -> vars.put(var, stack1.pop()));
-                    varLinks.put(c, var);
+                    frameStack.get().peek().define(words[idx], getNullObject());
                     return idx;
                 };
             case "if":
@@ -175,9 +168,11 @@ public class ISBPL {
                         }
                         ISBPLCallable block = readBlock(i, words, file);
                         long tid = Thread.currentThread().getId();
+                        Stack<ISBPLFrame> fstack = (Stack<ISBPLFrame>) frameStack.get().clone();
                         new Thread(() -> {
                             debuggerIPC.run.put(Thread.currentThread().getId(), debuggerIPC.run.getOrDefault(tid, -1) == -1 ? -1 : 0);
                             debuggerIPC.stack.put(Thread.currentThread().getId(), s);
+                            frameStack.set(fstack);
                             try {
                                 block.call(s);
                             } catch (ISBPLStop stop) {
@@ -186,7 +181,9 @@ public class ISBPL {
                                 }
                             } catch (ISBPLError err) {
                                 if(err.type.equals("Java"))
-                                        ((Throwable)s.pop().object).printStackTrace();
+                                    ((Throwable)s.pop().object).printStackTrace();
+                                else
+                                    throw err;
                             }
                         }).start();
                         return i.get();
@@ -887,7 +884,7 @@ public class ISBPL {
                     ISBPLObject callable = stack.pop();
                     String s = toJavaString(str);
                     callable.checkType(getType("func"));
-                    addFunction(s, (ISBPLCallable) callable.object);
+                    frameStack.get().peek().add(s, (ISBPLCallable) callable.object);
                 };
                 break;
             case "defmethod":
@@ -963,7 +960,7 @@ public class ISBPL {
                 func = natives.get(name);
                 break;
         }
-        addFunction(name, func);
+        frameStack.get().peek().add(name, func);
     }
     
     ISBPLObject nullObj = null;
@@ -1076,7 +1073,7 @@ public class ISBPL {
                         
                         forceAccessible(constructor);
                         if(debug)
-                            System.err.println("Java Call: new - " + Arrays.toString(params));
+                            System.err.println("Java Call: " + constructor + " - " + Arrays.toString(params));
                         try {
                             Object r = constructor.newInstance(params);
                             stack.push(toISBPL(r));
@@ -1098,30 +1095,44 @@ public class ISBPL {
         ISBPLObject[] o = new ISBPLObject[paramCount];
         Object[][] params = new Object[paramTypes.length][paramCount];
         int[] methodIDs = new int[paramCount];
-        Arrays.fill(methodIDs, -1);
-        for (int i = params[0].length - 1 ; i >= 0 ; i--) {
+        Arrays.fill(methodIDs, 0);
+        if(debug)
+            System.err.println("Consideration of " + paramTypes.length + " methods...");
+        for (int i = paramCount - 1 ; i >= 0 ; i--) {
             o[i] = stack.pop();
             for (int j = 0 ; j < paramTypes.length ; j++) {
                 Class<?>[] m = paramTypes[j];
                 try {
                     params[j][i] = fromISBPL(o[i], m[i]);
-                    methodIDs[i] = 1 << j;
+                    methodIDs[i] += 1 << j;
+                    if(debug)
+                        System.err.println("Consideration: Pass " + i + " " + Arrays.toString(paramTypes[j]));
                 }
-                catch (ISBPLError ignored) { }
+                catch (ISBPLError ignored) {
+                    if(debug)
+                        System.err.println("Consideration: Fail " + i + " " + Arrays.toString(paramTypes[j]));
+                }
             }
+            if(debug)
+                System.err.println("Considerartion: " + i + " " + Integer.toBinaryString(methodIDs[i] + (1 << 31)).substring(32 - paramTypes.length));
         }
         int msize = paramTypes.length;
         for (int i = 0 ; i < msize; i++) {
             boolean works = true;
             for (int j = 0 ; j < methodIDs.length ; j++) {
-                if ((methodIDs[j] & 1 << i) == 0) {
+                if ((methodIDs[j] & (1 << i)) == 0) {
                     works = false;
                     break;
                 }
             }
-            if(works)
+            if(works) {
                 mid.set(i);
+                if(debug)
+                    System.err.println("Considering: " + Arrays.toString(paramTypes[i]));
+            }
         }
+        if(debug)
+            System.err.println("Considered " + paramTypes.length + " methods. Result: " + Arrays.toString(paramTypes[mid.get()]));
         return params[mid.get()];
     }
     
@@ -1229,11 +1240,6 @@ public class ISBPL {
         type.methods.put("&" + name, stack -> stack.push(new ISBPLObject(getType("func"), callable)));
     }
     
-    public void addFunction(String name, ISBPLCallable callable) {
-        frameStack.get().peek().add(name, callable);
-        frameStack.get().peek().add("&" + name, stack -> stack.push(new ISBPLObject(getType("func"), callable)));
-    }
-    
     private String getFilePathForInclude(Stack<ISBPLObject> stack, Stack<File> file) {
         ISBPLObject s = stack.pop();
         String filepath = toJavaString(s);
@@ -1261,7 +1267,7 @@ public class ISBPL {
         AtomicInteger integer = new AtomicInteger(++i);
         ISBPLCallable callable = readBlock(integer, words, file);
         i = integer.get();
-        addFunction(name, callable);
+        frameStack.get().peek().add(name, callable);
         return i;
     }
     
@@ -1285,19 +1291,11 @@ public class ISBPL {
         ISBPLFrame frame = frameStack.get().peek();
         return (stack) -> {
             fileStack.get().push(file);
-            frameStack.get().push(new ISBPLFrame(frame));
+            frameStack.get().push(new ISBPLFrame(this, frame));
             try {
                 interpretRaw(theWords, stack);
             } finally {
-                HashMap<String, ISBPLCallable> fstack = frameStack.get().pop().map;
-                for(Map.Entry<String, ISBPLCallable> c : fstack.entrySet()) {
-                    if(varLinks.containsKey(c.getValue())) {
-                        vars.remove(varLinks.remove(c.getValue()));
-                        if(printCalls) {
-                            System.err.println("Garbage collector: removed " + c.getKey());
-                        }
-                    }
-                }
+                frameStack.get().pop();
                 fileStack.get().pop();
             }
         };
@@ -2154,32 +2152,53 @@ class ISBPLStack<T> extends Stack<T> {
     
     @Override
     public T push(T t) {
-        if(t == null && false)
-            throw new IllegalArgumentException("item is null");
+        if(t == null)
+            new IllegalArgumentException("item is null").printStackTrace();
         return super.push(t);
     }
 }
 
 class ISBPLFrame {
     
+    public ISBPL context;
     public ISBPLFrame parent;
     public HashMap<String, ISBPLCallable> map = new HashMap<>();
+    public HashMap<Object, ISBPLObject> variables = new HashMap<>();
     
-    public ISBPLFrame() { }
-    public ISBPLFrame(ISBPLFrame parentFrame) {
+    public ISBPLFrame(ISBPL context) {
+        this.context = context;
+    }
+    public ISBPLFrame(ISBPL context, ISBPLFrame parentFrame) {
+        this.context = context;
         parent = parentFrame;
     }
     
     public ISBPLCallable resolve(String name) {
+        if(name.startsWith("&")) {
+            ISBPLCallable c = resolve(name.substring(1));
+            if(c != null) {
+                return (stack -> stack.push(new ISBPLObject(context.getType("func"), c)));
+            }
+        }
         if(map.containsKey(name))
             return map.get(name);
-        if(parent != null)
+        if(parent != null) {
+            if(context.printCalls)
+                System.err.println("Referring to parent frame...");
             return parent.resolve(name);
+        }
         return null;
     }
     
     public void add(String name, ISBPLCallable callable) {
         map.put(name, callable);
+    }
+
+    public void define(String name, ISBPLObject value) {
+        Object var = new Object();
+        variables.put(var, value);
+        add(name, (stack) -> stack.push(variables.get(var)));
+        add("=" + name, (stack) -> variables.put(var, stack.pop()));
     }
     
     public HashMap<String, ISBPLCallable> all() {
