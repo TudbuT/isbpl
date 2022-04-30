@@ -112,9 +112,17 @@ public class ISBPL {
                     ISBPLCallable block = readBlock(i, words, file);
                     i.getAndIncrement();
                     ISBPLCallable catcher = readBlock(i, words, file);
+                    int stackHeight = stack.size();
                     try {
                         block.call(stack);
                     } catch (ISBPLError error) {
+                        if(stack.size() > stackHeight) {
+                            stack.setSize(stackHeight);
+                            stack.trimToSize();
+                        }
+                        while(stack.size() < stackHeight) {
+                            stack.push(getNullObject());
+                        }
                         if (Arrays.asList(allowed).contains(error.type) || allowed.length == 1 && allowed[0].equals("all")) {
                             stack.push(toISBPLString(error.message));
                             stack.push(toISBPLString(error.type));
