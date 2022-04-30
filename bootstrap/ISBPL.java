@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
+import sun.misc.Unsafe; // the Safe
 
 /**
  * @author TudbuT
@@ -17,6 +18,16 @@ public class ISBPL {
     // TODO: fully implement JIO
     // public static final boolean ENABLE_JINTEROP = true;
     
+    static Unsafe theSafe;
+    static {
+        try {
+            Field f = Unsafe.class.getDeclaredField("theUnsafe");
+            f.setAccessible(true);
+            theSafe = (Unsafe) f.get(null);
+        } catch (Throwable e) {
+            throw new Error(e);
+        }
+    }
     
     static boolean debug = false, printCalls = false;
     public ISBPLDebugger.IPC debuggerIPC = new ISBPLDebugger.IPC();
@@ -983,7 +994,7 @@ public class ISBPL {
                 }
                 for (Field field : clazz.getDeclaredFields()) {
                     addFunction(type, field.getName(), stack -> {
-                        field.setAccessible(true);
+                        forceAccessible(field);
                         if(debug)
                             System.err.println("Java Get: " + field);
                         try {
@@ -993,7 +1004,7 @@ public class ISBPL {
                         }
                     });
                     addFunction(type, "=" + field.getName(), stack -> {
-                        field.setAccessible(true);
+                        forceAccessible(field);
                         if(debug)
                             System.err.println("Java Set: " + field);
                         try {
@@ -1024,7 +1035,7 @@ public class ISBPL {
                         Object[] params = resolve(mid, stack, entry.getValue().get(0).getParameterCount(), paramTypes);
                         Method method = ms.get(mid.get());
                         
-                        method.setAccessible(true);
+                        forceAccessible(method);
                         if(debug)
                             System.err.println("Java Call: " + method + " - " + Arrays.toString(params));
                         try {
@@ -1060,7 +1071,7 @@ public class ISBPL {
                         Object[] params = resolve(mid, stack, entry.getValue().get(0).getParameterCount(), paramTypes);
                         Constructor<?> constructor = ms.get(mid.get());
                         
-                        constructor.setAccessible(true);
+                        forceAccessible(constructor);
                         if(debug)
                             System.err.println("Java Call: new - " + Arrays.toString(params));
                         try {
@@ -1545,6 +1556,15 @@ public class ISBPL {
         return bytes.toString();
     }
     
+    private static void forceAccessible(AccessibleObject thing) {
+        try {
+        theSafe.putBoolean(thing, theSafe.objectFieldOffset(AccessibleObject.class.getDeclaredField("override")), true);
+        } catch(Exception e) { //we are doomed
+            e.printStackTrace();
+            System.err.println("Failed to set accessible property. We are doomed.");
+            System.exit(1);
+        }
+    }
 }
 
 interface ISBPLKeyword {
