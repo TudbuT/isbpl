@@ -973,7 +973,7 @@ public class ISBPL {
     
     ISBPLObject nullObj = null;
     public ISBPLObject getNullObject() {
-        if(nullObj == null)
+        if(nullObj == null || nullObj.type == null)
             nullObj = new ISBPLObject(getType("null"), 0);
         return nullObj;
     }
