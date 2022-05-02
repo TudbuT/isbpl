@@ -1520,6 +1520,43 @@ public class ISBPL {
                 .replaceAll("\n", " ")
                 ;
     }
+
+    public void dump(Stack<ISBPLObject> stack) {
+        try {
+            System.err.println("VAR DUMP\n----------------");
+            for (ISBPLFrame map : frameStack.get()) {
+                HashMap<String, ISBPLCallable> all = map.all();
+                for (String key : all.keySet()) {
+                    if (key.startsWith("=")) {
+                        all.get(key.substring(1)).call(stack);
+                        System.err.println("\t" + key.substring(1) + ": \t" + stack.pop());
+                    }
+                }
+                System.err.println("----------------");
+            }
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("!!! VARS CORRUPTED! CANNOT FIX AUTOMATICALLY.");
+        }
+        boolean fixed = false;
+        while (!fixed) {
+            try {
+                System.err.println("STACK DUMP");
+                for (ISBPLObject object : stack) {
+                    System.err.println("\t" + object);
+                }
+                fixed = true;
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+                System.err.println("!!! STACK CORRUPTED!");
+                stack.pop();
+                System.err.println("Popped. Trying again.");
+            }
+        }
+    }
+
     
     public static void main(String[] args) {
         Stack<ISBPLObject> stack = new ISBPLStack<>();
@@ -1534,10 +1571,27 @@ public class ISBPL {
         try {
             File std = new File(System.getenv().getOrDefault("ISBPL_PATH", "/usr/lib/isbpl") + "/std.isbpl");
             isbpl.interpret(std, readFile(std), stack);
-            File file = new File(args[0]).getAbsoluteFile();
-            isbpl.interpret(file, readFile(file), stack);
-            stack.push(argarray(isbpl, args));
-            isbpl.interpret(file, "main exit", stack);
+            if(args.length > 0) {
+                File file = new File(args[0]).getAbsoluteFile();
+                isbpl.interpret(file, readFile(file), stack);
+                stack.push(argarray(isbpl, args));
+                isbpl.interpret(file, "main exit", stack);
+            } else {
+                isbpl.level0.add("dump", isbpl::dump);
+                BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+                String line;
+                System.out.print("> ");
+                while ((line = reader.readLine()) != null) {
+                    try {
+                        isbpl.interpret(new File("_shell"), line, stack);
+                    } catch(ISBPLError e) {
+                        System.out.println("Error: " + e.type + ": " + e.message);
+                    } catch(Throwable e) {
+                        e.printStackTrace();
+                    }
+                    System.out.print("\n> ");
+                }
+            }
         } catch (ISBPLStop stop) {
             System.exit(isbpl.exitCode);
         } catch (Exception e) {

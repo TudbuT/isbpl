@@ -1,4 +1,5 @@
 "library that provides hacky workarounds to features of ISBPL" #
+"this can change every once in a while. please be careful." #
 
 func globalize {
     JIO context level0 add2
