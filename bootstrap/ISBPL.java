@@ -2190,10 +2190,6 @@ class ISBPLFrame {
         }
         if(map.containsKey(name))
             return map.get(name);
-        if(parent != null) {
-            if(context.printCalls)
-                System.err.println("Referring to parent frame...");
-            return parent.resolve(name);
         }
         return null;
     }
