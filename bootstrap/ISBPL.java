@@ -2190,6 +2190,8 @@ class ISBPLFrame {
         }
         if(map.containsKey(name))
             return map.get(name);
+        if(parent != null) {
+            return parent.resolve(name);
         }
         return null;
     }
