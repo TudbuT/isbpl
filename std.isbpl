@@ -442,7 +442,7 @@ func [ {
 }
 
 func ] {
-    "create an array until arrayshadow is found" #
+    "create an array containing everything on stack until the arrayshadow" #
     def array 0 anew =array
     while { dup [ eq not } {
         1 anewput array aadd =array
