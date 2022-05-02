@@ -1,0 +1,7 @@
+"library that provides hacky workarounds to features of ISBPL" #
+
+func globalize {
+    JIO context level0 add2
+}
+
+
