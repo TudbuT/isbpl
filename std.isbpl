@@ -264,30 +264,33 @@ func strconcat {
 
 func strsplit {
     "bind args" #
-    def splitter _string =splitter
-    def str _string =str
+    def splitter _string _array =splitter
+    def str _string _array =str
 
-    1 neg =i
-    def sequences "" 0 anew =sequences
-    def sequence "" =sequence
-    while { ( i 1 + =i ) ( i str alen lt ) } {
+    def sequences 0 anew =sequences
+    def sequence 0 anew =sequence
+    def i 0 =i
+    def sm 0 =sm
+    while { i str alen lt } {
+        def j 0 =j
         def chr str i aget =chr
-        def spl splitter 0 aget =spl
-        sequence chr strconcat =sequence
-        1 neg =j
-        while { ( j 1 + =j ) ( chr spl eq ) } {
-            j splitter alen eq if {
-                def oldsq sequences =oldsq
-                "" ( sequences alen dup =seq 1 + ) anew =sequences
-                oldsq sequences 0 0 oldsq alen acopy
-                sequences seq sequence aput
-                "" =sequence
-                2 stop
+        while { j splitter alen lt i j + str alen lt and } {
+            str i j + aget splitter j aget eq if {
+                sm inc
+                sm splitter alen eq if {
+                    sequences [ sequence _string ] aadd =sequences
+                    0 anew =sequence
+                    0 =sm
+                    i splitter alen + =i
+                    4 stop
+                }
             }
-            str i j + aget dup =chr
-            splitter j aget dup =spl
+            j inc
         }
+        sequence [ chr ] aadd =sequence
+        i inc
     }
+    sequences [ sequence _string ] aadd =sequences
 
     sequences
 }
