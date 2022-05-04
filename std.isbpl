@@ -462,3 +462,24 @@ func ] {
     }
     pop array
 }
+
+func astartswith {
+    def match _array =match
+    def str _array =str
+
+    str alen match alen lt if {
+        0 2 stop
+    }
+    str alen match alen eq if {
+        str match eq 2 stop
+    }
+    def i 0 =i
+    while { i match alen lt } {
+        str i aget match i aget eq not if {
+            0 3 stop
+        }
+        i inc
+    }
+
+    1
+}

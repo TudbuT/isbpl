@@ -15,6 +15,10 @@ def STREAM.write           iota =STREAM.write
 
 def STREAM.create.server iota =STREAM.create.server
 
+func STREAM.stdin {
+    getos strlowercase "win" astartswith dup if { "conIN$" } not if { "/dev/stdin" }
+}
+
 func stream.readline {
     def id =id
     def byte 0 =byte

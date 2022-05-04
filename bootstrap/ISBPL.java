@@ -446,8 +446,7 @@ public class ISBPL {
                 break;
             case "getos":
                 func = (Stack<ISBPLObject> stack) -> {
-                    // TODO: This is not done yet, and it's horrible so far.
-                    stack.push(toISBPLString("linux"));
+                    stack.push(toISBPLString(System.getProperty("os.name")));
                 };
                 break;
             case "mktype":
