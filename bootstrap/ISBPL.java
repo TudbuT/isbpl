@@ -132,6 +132,13 @@ public class ISBPL {
                             throw error;
                         }
                     } catch (Exception e) {
+                        if(stack.size() > stackHeight) {
+                            stack.setSize(stackHeight);
+                            stack.trimToSize();
+                        }
+                        while(stack.size() < stackHeight) {
+                            stack.push(getNullObject());
+                        }
                         if (Arrays.asList(allowed).contains("Java") || allowed.length == 1 && allowed[0].equals("all")) {
                             stack.push(toISBPL(e));
                             stack.push(toISBPLString(e.getClass().getName()));

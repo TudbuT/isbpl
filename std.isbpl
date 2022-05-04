@@ -38,6 +38,7 @@ native subprocess
 "index has to be <16, index 0 is this call" #
 native _last_word
 native include
+native reload
 native putchar
 native mktype
 native mkinstance
@@ -310,15 +311,22 @@ func strjoin {
     s
 }
 
-func strsub {
+func strsub { 
+    def pos2 _int =pos2
+    def pos1 _int =pos1
+    _array
+    pos1 pos2 asub _string
+}
+
+func asub {
     "bind args" #
     def pos2 _int =pos2
     def pos1 _int =pos1
-    def string _string =string
+    def arr =arr
 
-    pos2 pos1 - =length
+    def length pos2 pos1 - =length
 
-    ( o _char length anew dup ) string swap pos1 0 length acopy
+    arr length anew pos1 0 length acopy
 }
 
 func puts {
@@ -444,7 +452,8 @@ func [ {
     TYPE_ARRAY TYPE_SHADOW settype
 }
 
-"For some reason, this makes objects lose their identity, because of the DUP statement. I do not know, why." #
+"For some reason, this makes objects lose their identity. I do not know, why." #
+"Fixed in commit 81eff27, bug was in dup native." #
 func ] {
     "create an array containing everything on stack until the arrayshadow" #
     def array 0 anew =array
