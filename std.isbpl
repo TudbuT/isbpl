@@ -40,6 +40,7 @@ native _last_word
 native include
 native putchar
 native mktype
+native mkinstance
 native getos
 native typename
 native gettype
@@ -333,9 +334,8 @@ func anewput {
     def arr size anew =arr
 
     def i 0 =i
-    def tmp
     while { i size lt } {
-        =tmp arr i tmp aput
+        arr swap i swap aput
         i inc
     }
 
@@ -444,6 +444,7 @@ func [ {
     TYPE_ARRAY TYPE_SHADOW settype
 }
 
+"For some reason, this makes objects lose their identity, because of the DUP statement. I do not know, why." #
 func ] {
     "create an array containing everything on stack until the arrayshadow" #
     def array 0 anew =array

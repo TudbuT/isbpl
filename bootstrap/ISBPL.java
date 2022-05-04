@@ -784,8 +784,8 @@ public class ISBPL {
             case "dup":
                 func = (Stack<ISBPLObject> stack) -> {
                     ISBPLObject o = stack.pop();
-                    stack.push(new ISBPLObject(o.type, o.object));
-                    stack.push(new ISBPLObject(o.type, o.object));
+                    stack.push(o);
+                    stack.push(o);
                 };
                 break;
             case "pop":
@@ -962,6 +962,12 @@ public class ISBPL {
                 func = (stack) -> {
                     ISBPLObject o = stack.pop();
                     o.type.vars.remove(o);
+                };
+                break;
+            case "mkinstance":
+                func = (stack) -> {
+                    ISBPLObject type = stack.pop();
+                    stack.push(new ISBPLObject(types.get((int) type.toLong()), new Object()));
                 };
                 break;
             default:
@@ -1384,7 +1390,7 @@ public class ISBPL {
                         if (rid == -2) {
                             if (word.equals(debuggerIPC.until)) {
                                 debuggerIPC.run.put(Thread.currentThread().getId(), 0);
-                                while (debuggerIPC.run.get(Thread.currentThread().getId()) != -1) Thread.sleep(1);
+                                while (debuggerIPC.run.get(Thread.currentThread().getId()) == 0) Thread.sleep(1);
                             }
                         }
                         if (rid == -3 && Thread.currentThread().getId() != debuggerIPC.threadID) {
@@ -1483,6 +1489,11 @@ public class ISBPL {
                 if(c == 'r' && escaping) {
                     escaping = false;
                     word.append('\r');
+                    continue;
+                }
+                if(c == 't' && escaping) {
+                    escaping = false;
+                    word.append('\t');
                     continue;
                 }
                 if(c == '"') {
@@ -1706,6 +1717,7 @@ class ISBPLObject {
             return false;
         if(this.object == object.object)
             return true;
+        // These can return false because the strict equality check has already been performed.
         if(this.object == null)
             return false;
         if(object.object == null)
