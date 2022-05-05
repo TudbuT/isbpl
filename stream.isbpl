@@ -39,6 +39,10 @@ func stream.readline {
         array _string
         2 stop
     }
+    array array alen 1 - aget 13 eq if {
+        def arr array alen 1 - anew =arr
+        array arr 0 0 arr alen acopy =array
+    }
     array _string
 }
 
