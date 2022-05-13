@@ -15,3 +15,29 @@ func delay {
 func delays {
     1000 * time pop
 }
+
+def Timer 
+construct Timer {
+    startMS
+    stopMS
+    timeTakenTMP
+    ;
+    start {
+        getms =startMS
+        null =timeTakenTMP
+    }
+    stop {
+        getms =stopMS
+        null =timeTakenTMP
+    }
+    timeTaken {
+        timeTakenTMP if {
+            timeTakenTMP 2 stop
+        }
+        startMS stopMS eq if {
+            0 dup =timeTakenTMP
+            2 stop
+        }
+        stopMS startMS - dup =timeTakenTMP
+    }
+} =Timer
