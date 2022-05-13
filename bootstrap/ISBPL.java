@@ -1550,7 +1550,7 @@ public class ISBPL {
                 if(escaping)
                     throw new RuntimeException("Error parsing code: Invalid Escape.");
             }
-            else if(c == '"' && word.length() == 0) {
+            else if(c == '"') {
                 word.append('"');
                 isInString = true;
             }
