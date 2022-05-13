@@ -216,6 +216,10 @@ public class ISBPL {
                         // Ignore empty
                         if(word2.equals("")) continue;
                         if(word2.equals("\"")) continue;
+                        if(word2.equals("#")) {
+                            j++;
+                            continue;
+                        }
 
                         if(definingMethods) {
                             AtomicInteger idx2 = new AtomicInteger(++j);
@@ -382,6 +386,11 @@ public class ISBPL {
                     ISBPLObject s = stack.pop();
                     i.checkType(getType("int"));
                     frameStack.get().get(frameStack.get().size() - 1 - ((int) i.object)).resolve(toJavaString(s)).call(stack);
+                };
+                break;
+            case "getfile":
+                func = (Stack<ISBPLObject> stack) -> {
+                    stack.push(toISBPLString(fileStack.get().peek().getAbsolutePath()));
                 };
                 break;
             case "reload":
