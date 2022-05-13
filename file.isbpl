@@ -1,3 +1,6 @@
+
+"TODO: The file library is deprecated. Please use stream.isbpl instead!\n" puts
+
 native _file
 native isfile
 
