@@ -32,6 +32,7 @@ OOP works like this:
 - There are three separate function resolvers:
   - Object
   - Local
+  - (Multiple more levels determined by the frame height)
   - Global
 - They are executed in the order shown above
 - The object resolver peeks onto the stack, gets the type of the object, and checks for methods on the type, if it finds one, it executes it
