@@ -79,6 +79,8 @@ func -- { 1 - }
 func ( { }
 func ) { }
 
+func ! { dup }
+
 "int must be registered first." #
 def TYPE_INT "int" mktype =TYPE_INT
 def TYPE_CHAR "char" mktype =TYPE_CHAR
@@ -89,7 +91,16 @@ def TYPE_DOUBLE "double" mktype =TYPE_DOUBLE
 def TYPE_NULL "null" mktype =TYPE_NULL
 native null
 def TYPE_FUNCTION "func" mktype =TYPE_FUNCTION
-def TYPE_ARRAY "array" mktype =TYPE_ARRAY
+
+def TYPE_ARRAY construct array {
+    ;
+    foreach {
+        def this =this
+        def lambda =lambda
+        def i 0 =i
+        while { i this alen lt } { this i aget lambda fcall i ++ =i }
+    }
+} =TYPE_ARRAY
 def TYPE_STRING "string" mktype =TYPE_STRING
 
 def TYPE_JIO construct jio {
@@ -109,21 +120,20 @@ def TYPE_JIO construct jio {
         native jio.context
         jio.context
     }
+    stack {
+        pop
+        "java.lang.Thread" JIO class currentThread0 getId0 JIO context debuggerIPC stack get1
+    }
 } =TYPE_JIO
 def JIO 0 TYPE_JIO settype =JIO
 
-"foreach" {
-    def this =this
-    def lambda =lambda
-    def i 0 =i
-    while { i this alen lt } { this i aget lambda fcall i ++ =i }
-} TYPE_ARRAY defmethod
-
-def TYPE_REFERENCE "reference" mktype =TYPE_REFERENCE
+def TYPE_REFERENCE construct reference {
+    ?
+} =TYPE_REFERENCE
 "value" TYPE_REFERENCE deffield
 func reference {
-    def this 1 TYPE_REFERENCE settype =this
-    this =value
+    def this TYPE_REFERENCE mkinstance =this
+    this =? 
     this
 }
 
@@ -366,9 +376,11 @@ func areverse {
     new
 }
 
-func strcontains {
+func strcontains { acontains }
+
+func acontains {
     def check _array =check "bind check" #
-    def s _array =s "bind string" #
+    def s _array =s "bind array" #
 
     def found 0 =found
     def counter 0 =counter
@@ -467,7 +479,7 @@ func ] {
     pop array
 }
 
-func astartswith {
+func astartswith_old {
     def match _array =match
     def str _array =str
 
@@ -486,4 +498,23 @@ func astartswith {
     }
 
     1
+}
+
+func astartswith {
+    def match _array =match
+    def val _array =val
+
+    val alen match alen lt if {
+        0 
+        2 stop
+    }
+    val alen match alen eq if {
+        val match eq 
+        2 stop
+    }
+
+        val
+        0 
+        match alen 
+    asub match eq
 }
