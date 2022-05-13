@@ -39,6 +39,7 @@ native subprocess
 native _last_word
 native include
 native reload
+native getfile
 native putchar
 native mktype
 native mkinstance
@@ -82,7 +83,14 @@ func ) { }
 func ! { dup }
 
 "int must be registered first." #
-def TYPE_INT "int" mktype =TYPE_INT
+def TYPE_INT construct int {
+    # "no fields needed"
+    ;
+    new {
+        "int has the new method because all types are ints" #
+        mkinstance
+    }
+} =TYPE_INT
 def TYPE_CHAR "char" mktype =TYPE_CHAR
 def TYPE_BYTE "byte" mktype =TYPE_BYTE
 def TYPE_FLOAT "float" mktype =TYPE_FLOAT
