@@ -78,7 +78,6 @@ func -- { 1 - }
 "this looks so wrong" #
 func ( { }
 func ) { }
-func ; { }
 
 "int must be registered first." #
 def TYPE_INT "int" mktype =TYPE_INT
@@ -93,22 +92,24 @@ def TYPE_FUNCTION "func" mktype =TYPE_FUNCTION
 def TYPE_ARRAY "array" mktype =TYPE_ARRAY
 def TYPE_STRING "string" mktype =TYPE_STRING
 
-def TYPE_JIO "jio" mktype =TYPE_JIO
-"class" {
-    pop
-    native jio.class
-    jio.class
-} TYPE_JIO defmethod
-"getclass" {
-    pop
-    native jio.getclass
-    jio.getclass
-} TYPE_JIO defmethod
-"context" {
-    pop
-    native jio.context
-    jio.context
-} TYPE_JIO defmethod
+def TYPE_JIO construct jio {
+    ;
+    class {
+        pop
+        native jio.class
+        jio.class
+    }
+    getclass {
+        pop
+        native jio.getclass
+        jio.getclass
+    }
+    context {
+        pop
+        native jio.context
+        jio.context
+    }
+} =TYPE_JIO
 def JIO 0 TYPE_JIO settype =JIO
 
 "foreach" {

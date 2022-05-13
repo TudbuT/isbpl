@@ -66,7 +66,7 @@ public class ISBPL {
                 return (idx, words, file, stack) -> {
                     idx++;
                     AtomicInteger i = new AtomicInteger(idx);
-                    ISBPLCallable callable = readBlock(i, words, file);
+                    ISBPLCallable callable = readCallable(i, words, file);
                     if(stack.pop().isTruthy()) {
                         callable.call(stack);
                     }
@@ -76,9 +76,9 @@ public class ISBPL {
                 return (idx, words, file, stack) -> {
                     idx++;
                     AtomicInteger i = new AtomicInteger(idx);
-                    ISBPLCallable cond = readBlock(i, words, file);
+                    ISBPLCallable cond = readCallable(i, words, file);
                     i.getAndIncrement();
-                    ISBPLCallable block = readBlock(i, words, file);
+                    ISBPLCallable block = readCallable(i, words, file);
                     cond.call(stack);
                     while (stack.pop().isTruthy()) {
                         block.call(stack);
@@ -109,9 +109,9 @@ public class ISBPL {
                         }
                     }
                     AtomicInteger i = new AtomicInteger(idx);
-                    ISBPLCallable block = readBlock(i, words, file);
+                    ISBPLCallable block = readCallable(i, words, file);
                     i.getAndIncrement();
-                    ISBPLCallable catcher = readBlock(i, words, file);
+                    ISBPLCallable catcher = readCallable(i, words, file);
                     int stackHeight = stack.size();
                     try {
                         block.call(stack);
@@ -148,9 +148,9 @@ public class ISBPL {
                 return (idx, words, file, stack) -> {
                     idx++;
                     AtomicInteger i = new AtomicInteger(idx);
-                    ISBPLCallable block = readBlock(i, words, file);
+                    ISBPLCallable block = readCallable(i, words, file);
                     i.getAndIncrement();
-                    ISBPLCallable catcher = readBlock(i, words, file);
+                    ISBPLCallable catcher = readCallable(i, words, file);
                     try {
                         block.call(stack);
                     } finally {
@@ -162,7 +162,7 @@ public class ISBPL {
             case "{":
                 return (idx, words, file, stack) -> {
                     AtomicInteger i = new AtomicInteger(idx);
-                    ISBPLCallable block = readBlock(i, words, file);
+                    ISBPLCallable block = readCallable(i, words, file);
                     stack.push(new ISBPLObject(getType("func"), block));
                     return i.get();
                 };
@@ -175,7 +175,7 @@ public class ISBPL {
                         for(ISBPLObject obj : stack) {
                             s.push(obj);
                         }
-                        ISBPLCallable block = readBlock(i, words, file);
+                        ISBPLCallable block = readCallable(i, words, file);
                         long tid = Thread.currentThread().getId();
                         Stack<ISBPLFrame> fstack = (Stack<ISBPLFrame>) frameStack.get().clone();
                         new Thread(() -> {
@@ -197,6 +197,43 @@ public class ISBPL {
                         }).start();
                         return i.get();
                     }
+                };
+            case "construct":
+                return (idx, words, file, stack) -> {
+                    idx++;
+                    String typename = words[idx++];
+                    // Chop string quote
+                    if(typename.startsWith("\"")) typename = typename.substring(1);
+
+                    // Create type
+                    ISBPLType type = registerType(typename);
+
+                    AtomicInteger i = new AtomicInteger(idx);
+                    String[] words2 = readBlock(i, words, file);
+                    boolean definingMethods = false;
+                    for(int j = 0; j < words2.length; j++) {
+                        String word2 = words2[j];
+                        // Ignore empty
+                        if(word2.equals("")) continue;
+                        if(word2.equals("\"")) continue;
+
+                        if(definingMethods) {
+                            AtomicInteger idx2 = new AtomicInteger(++j);
+                            addFunction(type, word2, readCallable(idx2, words2, file));
+                            j = idx2.get();
+                        }
+                        else {
+                            if(word2.equals(";")) {
+                                definingMethods = true;
+                                continue;
+                            }
+                            Object var = new Object();
+                            addFunction(type, word2, (stack1) -> stack1.push(type.varget(stack1.pop()).getOrDefault(var, getNullObject())));
+                            addFunction(type, "=" + word2, (stack1) -> type.varget(stack1.pop()).put(var, stack1.pop()));
+                        }
+                    }
+                    stack.push(new ISBPLObject(getType("int"), type.id));
+                    return i.get();
                 };
             default:
                 return null;
@@ -1279,13 +1316,13 @@ public class ISBPL {
         i++;
         String name = words[i];
         AtomicInteger integer = new AtomicInteger(++i);
-        ISBPLCallable callable = readBlock(integer, words, file);
+        ISBPLCallable callable = readCallable(integer, words, file);
         i = integer.get();
         frameStack.get().peek().add(name, callable);
         return i;
     }
     
-    private ISBPLCallable readBlock(AtomicInteger idx, String[] words, File file) {
+    private String[] readBlock(AtomicInteger idx, String[] words, File file) {
         ArrayList<String> newWords = new ArrayList<>();
         int i = idx.get();
         i++;
@@ -1301,7 +1338,11 @@ public class ISBPL {
             newWords.add(word);
         }
         idx.set(i);
-        String[] theWords = newWords.toArray(new String[0]);
+        return newWords.toArray(new String[0]);
+    }
+
+    private ISBPLCallable readCallable(AtomicInteger idx, String[] words, File file) {
+        String[] theWords = readBlock(idx, words, file);
         ISBPLFrame frame = frameStack.get().peek();
         return (stack) -> {
             fileStack.get().push(file);
