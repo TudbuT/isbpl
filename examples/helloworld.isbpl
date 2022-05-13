@@ -1,0 +1,4 @@
+func main {
+    "Hello World!\n" puts
+    0
+}
