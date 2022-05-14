@@ -371,17 +371,17 @@ func anewput {
 
 func areverse {
     def arr =arr
-    def new arr alen anew =new
+    def newarr arr alen anew =newarr
 
     def i arr alen 1 - =i
     def j 0 =j
     while { i 0 lt not } {
-        new j arr i aget aput
+        newarr j arr i aget aput
         j 1 + =j
         i 1 - =i
     }
 
-    new
+    newarr
 }
 
 func strcontains { acontains }
@@ -463,11 +463,11 @@ func aadd {
     def arr2 =arr2
     def arr1 =arr1
     
-    def new arr1 alen arr2 alen + anew =new
-    arr1 new 0 0         arr1 alen acopy =new
-    arr2 new 0 arr1 alen arr2 alen acopy =new
+    def newarr arr1 alen arr2 alen + anew =newarr
+    arr1 newarr 0 0         arr1 alen acopy =newarr
+    arr2 newarr 0 arr1 alen arr2 alen acopy =newarr
 
-    new
+    newarr
 }
 
 def TYPE_SHADOW "shadow" mktype =TYPE_SHADOW

@@ -44,6 +44,7 @@ public class ISBPL {
     private final ISBPLStreamer streamer = new ISBPLStreamer(this);
     ArrayList<String> included = new ArrayList<>();
     HashMap<String, ISBPLCallable> natives = new HashMap<>();
+    boolean stopExceptions = false;
     
     private final Object syncMakeThread = new Object();
     private ISBPLKeyword getKeyword(String word) {
@@ -1513,6 +1514,16 @@ public class ISBPL {
         }
         catch (InterruptedException e) {
             e.printStackTrace();
+        }
+        catch (Throwable t) {
+            if(debug) System.out.println("Passing exception " + t + " to caller.");
+            if(stopExceptions) {
+                t.printStackTrace();
+                System.out.println("Current Words: ");
+                System.out.println(Arrays.toString(words));
+                dump(stack);
+            }
+            throw t;
         }
     }
     
