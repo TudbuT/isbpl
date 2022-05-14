@@ -209,6 +209,11 @@ public class ISBPL {
                     // Create type
                     ISBPLType type = registerType(typename);
 
+                    for(; !words[idx].equals("{"); idx++) {
+                        ISBPLType t = getType(words[idx]);
+                        if(!type.superTypes.contains(t))
+                            type.superTypes.add(t);
+                    }
                     AtomicInteger i = new AtomicInteger(idx);
                     String[] words2 = readBlock(i, words, file);
                     boolean definingMethods = false;
@@ -502,6 +507,11 @@ public class ISBPL {
                     ISBPLObject i = stack.pop();
                     i.checkType(getType("int"));
                     stack.push(toISBPLString(types.get(((int) i.object)).name));
+                };
+                break;
+            case "typeid":
+                func = (stack) -> {
+                    stack.push(new ISBPLObject(getType("int"), getType(toJavaString(stack.pop())).id));
                 };
                 break;
             case "gettype":
@@ -966,6 +976,17 @@ public class ISBPL {
                     addFunction(t, "=" + s, (stack1) -> t.varget(stack1.pop()).put(var, stack1.pop()));
                 };
                 break;
+            case "defsuper":
+                func = (stack) -> {
+                    ISBPLObject type = stack.pop();
+                    ISBPLObject otherType = stack.pop();
+                    type.checkType(getType("int"));
+                    otherType.checkType(getType("int"));
+                    ISBPLType t = types.get((int) type.object);
+                    ISBPLType s = types.get((int) otherType.object);
+                    t.superTypes.add(s);
+                };
+                break;
             case "callmethod":
                 func = (stack) -> {
                     ISBPLObject obj = stack.pop();
@@ -1014,7 +1035,11 @@ public class ISBPL {
             case "mkinstance":
                 func = (stack) -> {
                     ISBPLObject type = stack.pop();
-                    stack.push(new ISBPLObject(types.get((int) type.toLong()), new Object()));
+                    ISBPLType t = types.get((int) type.toLong());
+                    stack.push(new ISBPLObject(t, new Object()));
+                    if(t.methods.containsKey("construct")) {
+                        t.methods.get("construct").call(stack);
+                    }
                 };
                 break;
             default:
@@ -1583,7 +1608,15 @@ public class ISBPL {
             }
         }
         words.add(word.toString());
-        return words.toArray(new String[0]);
+
+        ArrayList<String> cleanWords = new ArrayList<>();
+        for(int i = 0; i < words.size(); i++) {
+            if(!words.get(i).isEmpty()) {
+                cleanWords.add(words.get(i));
+            }
+        }
+
+        return cleanWords.toArray(new String[0]);
     }
     
     private String cleanCode(String code) {
@@ -1795,24 +1828,33 @@ class ISBPLObject {
     }
     
     public void checkType(ISBPLType wanted) {
-        if(wanted.id != type.id) {
-            throw new ISBPLError("IncompatibleTypes", "Incompatible types: " + type.name + " - " + wanted.name);
+        Queue<ISBPLType> types = new LinkedList<>();
+        types.add(type);
+        while (!types.isEmpty()) {
+            type = types.poll();
+            types.addAll(type.superTypes);
+            if(type.id == wanted.id) {
+                return;
+            }
         }
+        throw new ISBPLError("IncompatibleTypes", "Incompatible types: " + type.name + " - " + wanted.name);
     }
     
     public void checkTypeMulti(ISBPLType... wanted) {
-        int f = -1;
         StringBuilder wantedNames = new StringBuilder();
         for (int i = 0 ; i < wanted.length ; i++) {
             wantedNames.append(" ").append(wanted[i].name);
-            if(wanted[i].id == type.id) {
-                f = i;
-                break;
+            Queue<ISBPLType> types = new LinkedList<>();
+            types.add(type);
+            while (!types.isEmpty()) {
+                type = types.poll();
+                types.addAll(type.superTypes);
+                if(type.id == wanted[i].id) {
+                    return;
+                }
             }
         }
-        if(f == -1) {
-            throw new ISBPLError("IncompatibleTypes", "Incompatible types: " + type.name + " - " + wantedNames.substring(1));
-        }
+        throw new ISBPLError("IncompatibleTypes", "Incompatible types: " + type.name + " - " + wantedNames.substring(1));
     }
     
     @Override

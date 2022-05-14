@@ -45,6 +45,7 @@ native mktype
 native mkinstance
 native getos
 native typename
+native typeid
 native gettype
 native settype
 "try and do are keywords, not functions" #
@@ -70,6 +71,7 @@ native fcall
 native deffunc
 native defmethod
 native deffield
+native defsuper
 native delete "deletes all field values from an object" #
 native callmethod
 
@@ -82,10 +84,14 @@ func ) { }
 
 func ! { dup }
 
+"The TYPE_ prefix is deprecated, but will be kept for backwards compatibility." #
 "int must be registered first." #
 def TYPE_INT construct int {
     # "no fields needed"
     ;
+    construct {
+        pop 0
+    }
     new {
         "int has the new method because all types are ints" #
         mkinstance
@@ -99,9 +105,13 @@ def TYPE_DOUBLE "double" mktype =TYPE_DOUBLE
 def TYPE_NULL "null" mktype =TYPE_NULL
 native null
 def TYPE_FUNCTION "func" mktype =TYPE_FUNCTION
+def Function TYPE_FUNCTION =Function
 
 def TYPE_ARRAY construct array {
     ;
+    construct {
+        pop anew
+    }
     foreach {
         def this =this
         def lambda =lambda
@@ -109,9 +119,17 @@ def TYPE_ARRAY construct array {
         while { i this alen lt } { this i aget lambda fcall i ++ =i }
     }
 } =TYPE_ARRAY
-def TYPE_STRING "string" mktype =TYPE_STRING
+def Array TYPE_ARRAY =Array
+def TYPE_STRING construct string array {
+    ;
+    _array {
+        Array settype
+    }
+} =TYPE_STRING
+def String TYPE_STRING =String
 
 def TYPE_JIO construct jio {
+    jioclass
     ;
     class {
         pop
