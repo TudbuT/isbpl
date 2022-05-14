@@ -247,6 +247,7 @@ public class ISBPL {
                 };
             case "string!":
                 return (idx, words, file, stack) -> {
+                    idx++;
                     AtomicInteger i = new AtomicInteger(idx);
                     String s = "";
                     for(String w : readBlock(i, words, file))
