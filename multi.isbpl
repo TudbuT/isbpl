@@ -1,0 +1,38 @@
+"multi.isbpl: Library for creating and controlling other ISBPL contexts." # 
+"This library is not supported when using a modded ISBPL.java, but it should be usable unless core functions are changed." #
+
+"obtain ISBPL class (we don't know its package, so we use this workaround)" #
+def ISBPL JIO context getClass0 getName0 JIO class =ISBPL
+def ISBPLStack JIO stack getClass0 getName0 JIO class =ISBPLStack
+"wrapper for jContext" #
+def Context construct Context {
+    jContext # "real context"
+    ;
+    construct {
+        def this =this
+        ISBPL new0 this =jContext
+        "native include \"#std.isbpl\" include" this eval
+        this
+    }
+    eval {
+        def this =this
+        "multi.isbpl:_eval" File new1 swap JIO stack this jContext interpret3
+    }
+    makeStack {
+        pop
+        ISBPLStack new0
+    }
+    evalNewStack {
+        def this =this
+        def stack
+        "multi.isbpl:_eval" File new1 swap ISBPLStack new0 dup =stack this jContext interpret3
+        stack
+    }
+    evalCustom {
+        def this =this
+        def stack =stack
+        def toRun =toRun
+        "multi.isbpl:_eval" File new1 run stack jContext interpret3
+        stack
+    }
+}
