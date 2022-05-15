@@ -1636,7 +1636,7 @@ public class ISBPL {
     
     private String cleanCode(String code) {
         return code
-                .replaceAll("\r", "\n")
+                .replaceAll("\r\n", "\n")
                 .replaceAll("\n", " ")
                 ;
     }
