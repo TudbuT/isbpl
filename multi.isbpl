@@ -4,6 +4,7 @@
 "obtain ISBPL class (we don't know its package, so we use this workaround)" #
 def ISBPL JIO context getClass0 getName0 JIO class =ISBPL
 def ISBPLStack JIO stack getClass0 getName0 JIO class =ISBPLStack
+def File "java.io.File" JIO class =File
 "wrapper for jContext" #
 def Context construct Context {
     jContext # "real context"
