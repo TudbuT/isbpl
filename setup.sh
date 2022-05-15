@@ -4,6 +4,8 @@ if [ "$ISBPL_PATH" = "" ] ; then
 fi
 IFS=: read -r BIN OTHERBIN <<< "$PATH"
 mkdir /usr/lib/isbpl >& /dev/null
+touch /usr/lib/isbpl/test && export BIN=/usr/bin && rm /usr/lib/isbpl/test
+echo "Installing to $BIN."
 cp ./*.isbpl /usr/lib/isbpl >& /dev/null
 cd bootstrap
 cp ../ISBPL.java .
@@ -13,7 +15,7 @@ rm ISBPL.java ISBPL.jar
 zip -r ISBPL.jar * META-INF 
 rm *.class
 cd ..
-echo "#!${BIN}/java -jar" > ISBPL.jar
+echo "#!java -jar" > ISBPL.jar
 cat bootstrap/ISBPL.jar >> ISBPL.jar
 chmod a+rx ISBPL.jar
 cp ISBPL.jar "${BIN}/isbpl"
