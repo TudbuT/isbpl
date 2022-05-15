@@ -38,6 +38,6 @@ def Context construct Context {
     }
     copyFunc {
         def this =this
-        swap jContext level0 put2 pop
+        swap this jContext level0 add2
     }
 } =Context
