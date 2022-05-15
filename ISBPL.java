@@ -257,8 +257,12 @@ public class ISBPL {
                     idx++;
                     AtomicInteger i = new AtomicInteger(idx);
                     String s = "";
-                    for(String w : readBlock(i, words, file))
-                        s += w + " ";
+                    for(String w : readBlock(i, words, file)) {
+                        s += w;
+                        if(w.length() > 0 && w.charAt(0) == '"') 
+                            s += '"';
+                        s += " ";
+                    }
                     s = s.substring(0, s.length() - 1);
                     stack.push(toISBPLString(s));
                     return i.get();

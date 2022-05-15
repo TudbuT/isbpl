@@ -2,6 +2,7 @@
 if [ "$ISBPL_PATH" = "" ] ; then
     echo 'ISBPL_PATH=/usr/lib/isbpl' >> /etc/environment
 fi
+IFS=: read -r BIN OTHERBIN <<< "$PATH"
 mkdir /usr/lib/isbpl >& /dev/null
 cp ./*.isbpl /usr/lib/isbpl >& /dev/null
 cd bootstrap
@@ -12,8 +13,8 @@ rm ISBPL.java ISBPL.jar
 zip -r ISBPL.jar * META-INF 
 rm *.class
 cd ..
-echo "#!/usr/bin/java -jar" > ISBPL.jar
+echo "#!${BIN}/java -jar" > ISBPL.jar
 cat bootstrap/ISBPL.jar >> ISBPL.jar
 chmod a+rx ISBPL.jar
-cp ISBPL.jar /bin/isbpl
-chmod a+rx /bin/isbpl
+cp ISBPL.jar "${BIN}/isbpl"
+chmod a+rx "${BIN}/isbpl"
