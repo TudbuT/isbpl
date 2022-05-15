@@ -35,4 +35,4 @@ def Context construct Context {
         "multi.isbpl:_eval" File new1 run stack jContext interpret3
         stack
     }
-}
+} =Context
