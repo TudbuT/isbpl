@@ -1461,6 +1461,7 @@ public class ISBPL {
     public void interpret(File file, String code, Stack<ISBPLObject> stack) {
         if(code.startsWith("#!"))
             code = code.substring(code.indexOf("\n") + 1);
+        debuggerIPC.stack.put(Thread.currentThread().getId(), stack);
         fileStack.get().push(file);
         code = cleanCode(code);
         String[] words = splitWords(code);
