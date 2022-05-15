@@ -33,7 +33,7 @@ def Context construct Context {
         def this =this
         def stack =stack
         def toRun =toRun
-        "multi.isbpl:_eval" File new1 toRun stack jContext interpret3
+        "multi.isbpl:_eval" File new1 toRun stack this jContext interpret3
         stack
     }
     copyFunc {
