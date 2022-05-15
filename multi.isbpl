@@ -36,4 +36,8 @@ def Context construct Context {
         "multi.isbpl:_eval" File new1 run stack jContext interpret3
         stack
     }
+    copyFunc {
+        def this =this
+        swap jContext level0 put2 pop
+    }
 } =Context
