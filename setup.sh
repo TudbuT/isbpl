@@ -15,7 +15,7 @@ rm ISBPL.java ISBPL.jar
 zip -r ISBPL.jar * META-INF 
 rm *.class
 cd ..
-echo "#!java -jar" > ISBPL.jar
+echo "#!${BIN}java -jar" > ISBPL.jar
 cat bootstrap/ISBPL.jar >> ISBPL.jar
 chmod a+rx ISBPL.jar
 cp ISBPL.jar "${BIN}/isbpl"
