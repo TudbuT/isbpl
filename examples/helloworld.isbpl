@@ -1,5 +1,5 @@
 func main {
-    with args
+    with args ;
     "Hello World!\n" puts
     0
 }
