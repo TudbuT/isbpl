@@ -31,7 +31,7 @@ func stream.readline {
             -1
             2 stop
         }
-        while { ( i 1 + =i ) ( byte 10 eq not byte -1 eq not) } {
+        while { ( i 1 + =i ) ( byte 10 eq not byte -1 eq not ) } {
             id STREAM.read stream dup =byte _char 
         } pop
     ] =array
