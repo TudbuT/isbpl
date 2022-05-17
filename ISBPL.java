@@ -252,6 +252,16 @@ public class ISBPL {
                         ISBPL.gErrorStream.println("Constructing type " + type);
                     return i.get();
                 };
+            case "with":
+                return (idx, words, file, stack) -> {
+                    idx++;
+                    int i = 1;
+                    for(; !words[idx].equals(";"); idx++, i++);
+                    for(idx--; !words[idx].equals("with"); idx--) {
+                        frameStack.get().peek().define(words[idx], stack.pop());
+                    }
+                    return idx + i;
+                };
             case "string!":
                 return (idx, words, file, stack) -> {
                     idx++;
