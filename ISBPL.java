@@ -256,7 +256,7 @@ public class ISBPL {
                 return (idx, words, file, stack) -> {
                     idx++;
                     int i = 1;
-                    for(; !words[idx].equals(";"); idx++, i++);
+                    for(; !words[idx].equals(";") && !words[idx].isEmpty(); idx++, i++);
                     for(idx--; !words[idx].equals("with"); idx--) {
                         frameStack.get().peek().define(words[idx], stack.pop());
                     }
