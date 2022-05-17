@@ -280,9 +280,10 @@ func acopy {
     def arr2 =arr2
     def arr1 =arr1
 
-    def i 1 neg =i
-    while { ( i ++ =i ) ( i len lt ) } {
+    def i 0 =i
+    while { i len lt } {
         arr2 ( i idx2 + ) ( arr1 ( i idx1 + ) aget ) aput
+        i 1 + =i
     }
 
     arr2
