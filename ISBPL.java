@@ -1833,7 +1833,6 @@ class ISBPLType {
                "id=" + id +
                ", name='" + name + '\'' +
                ", superTypes=" + superTypes +
-               ", methods=" + methods +
                '}';
     }
 }
