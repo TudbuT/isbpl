@@ -573,6 +573,18 @@ public class ISBPL {
                     stack.push(new ISBPLObject(types.get(((int) i.object)), o.object));
                 };
                 break;
+            case "extends":
+                func = (stack) -> {
+                    ISBPLObject b = stack.pop();
+                    ISBPLObject a = stack.pop();
+                    if(a.type.extendsOther(getType("int")) && b.type.extendsOther(getType("int"))) {
+                        stack.push(new ISBPLObject(getType("int"), types.get((int) a.object).extendsOther(types.get((int) b.object)) ? 1 : 0));
+                    }
+                    else {
+                        stack.push(new ISBPLObject(getType("int"), a.type.extendsOther(b.type) ? 1 : 0));
+                    }
+                };
+                break;
             case "throw":
                 func = (Stack<ISBPLObject> stack) -> {
                     ISBPLObject message = stack.pop();
@@ -1834,6 +1846,18 @@ class ISBPLType {
                ", name='" + name + '\'' +
                ", superTypes=" + superTypes +
                '}';
+    }
+
+    public boolean extendsOther(ISBPLType other) {
+        Queue<ISBPLType> q = new LinkedList<>();
+        q.add(this);
+        while(!q.isEmpty()) {
+            ISBPLType t = q.poll();
+            q.addAll(t.superTypes);
+            if(other.equals(t))
+                return true;
+        }
+        return false;
     }
 }
 

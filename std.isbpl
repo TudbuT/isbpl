@@ -48,6 +48,8 @@ native typename
 native typeid
 native gettype
 native settype
+"a b extends => a.extends(b) | b.isSuperOf(a) | a == b" #
+native extends
 "try and do are keywords, not functions" #
 native throw
 native exit
