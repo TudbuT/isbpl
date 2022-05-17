@@ -323,6 +323,19 @@ public class ISBPL {
                     stack.push(new ISBPLObject(getType("array"), arr));
                 };
                 break;
+            case "acopy":
+                func = (stack) -> {
+                    ISBPLObject len = stack.pop();
+                    ISBPLObject idx2 = stack.pop();
+                    ISBPLObject idx1 = stack.pop();
+                    ISBPLObject arr2 = stack.pop();
+                    ISBPLObject arr1 = stack.pop();
+                    arr1.checkType(getType("array"));
+                    arr2.checkType(getType("array"));
+                    System.arraycopy((ISBPLObject[]) arr1.object, (int) idx1.toLong(), (ISBPLObject[]) arr2.object, (int) idx2.toLong(), (int) len.toLong());
+                    stack.push(arr2);
+                };
+                break;
             case "_array":
                 func = (Stack<ISBPLObject> stack) -> {
                     ISBPLObject a = stack.pop();
