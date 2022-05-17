@@ -1106,7 +1106,7 @@ public class ISBPL {
                         if(debug)
                             ISBPL.gErrorStream.println("Java Get: " + field);
                         try {
-                            stack.push(toISBPL(field.get(stack.pop().object)));
+                            stack.push(toISBPL(field.get(fromISBPL(stack.pop(), clazz))));
                         }
                         catch (IllegalAccessException ignored) {
                         }
@@ -1116,7 +1116,7 @@ public class ISBPL {
                         if(debug)
                             ISBPL.gErrorStream.println("Java Set: " + field);
                         try {
-                            field.set(stack.pop().object, fromISBPL(stack.pop(), field.getType()));
+                            field.set(fromISBPL(stack.pop(), clazz), fromISBPL(stack.pop(), field.getType()));
                         }
                         catch (IllegalAccessException ignored) {
                         }
@@ -1132,7 +1132,7 @@ public class ISBPL {
                 }
                 for (Map.Entry<String, ArrayList<Method>> entry : methods.entrySet()) {
                     addFunction(type, entry.getKey(), stack -> {
-                        Object o = stack.pop().object;
+                        Object o = fromISBPL(stack.pop(), clazz);
                         // Resolve
                         AtomicInteger mid = new AtomicInteger(0);
                         ArrayList<Method> ms = entry.getValue();
@@ -1266,9 +1266,10 @@ public class ISBPL {
     
     public Object fromISBPL(ISBPLObject o, Class<?> expectedType) {
         ISBPLType type = o.type;
-        if (type.equals(getType("null"))) {
+        if (type.equals(getType("null")))
             return null;
-        }
+        if(o.object == null)
+            return null;
         if (type.equals(getType("string"))) {
             if(expectedType.isAssignableFrom(String.class))
                 return toJavaString(o);
@@ -1345,7 +1346,7 @@ public class ISBPL {
     
     public void addFunction(ISBPLType type, String name, ISBPLCallable callable) {
         type.methods.put(name, callable);
-        type.methods.put("&" + name, stack -> stack.push(new ISBPLObject(getType("func"), callable)));
+        type.methods.put("&" + name, stack -> {stack.pop(); stack.push(new ISBPLObject(getType("func"), callable)); });
     }
     
     private String getFilePathForInclude(Stack<ISBPLObject> stack, Stack<File> file) {
