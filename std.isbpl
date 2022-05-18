@@ -179,13 +179,13 @@ func _string {
         object itos =object
     }
     object isfloat if {
-        object ftoi =object
+        object ftos =object
     }
     object islong if {
-        object ltoi =object
+        object ltos =object
     }
     object isdouble if {
-        object dtoi =object
+        object dtos =object
     }
 
     object isarray if {

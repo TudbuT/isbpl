@@ -23,21 +23,24 @@ construct Timer {
     timeTakenTMP
     ;
     start {
-        getms =startMS
-        null =timeTakenTMP
+        with this ;
+        getms this =startMS
+        null this =timeTakenTMP
     }
-    stop {
-        getms =stopMS
-        null =timeTakenTMP
+    end {
+        with this ;
+        getms this =stopMS
+        null this =timeTakenTMP
     }
     timeTaken {
-        timeTakenTMP if {
-            timeTakenTMP 2 stop
+        with this ;
+        this timeTakenTMP null eq not if {
+            this timeTakenTMP 2 stop
         }
-        startMS stopMS eq if {
-            0 dup =timeTakenTMP
+        this startMS this stopMS eq if {
+            0 dup this =timeTakenTMP
             2 stop
         }
-        stopMS startMS - dup =timeTakenTMP
+        this stopMS this startMS - dup this =timeTakenTMP
     }
 } =Timer
