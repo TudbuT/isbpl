@@ -49,6 +49,9 @@ func makeCode {
             idx ++ =idx
         }
         1000 =idx
+        JIO context debug if {
+            stdin itos puts
+        }
     } =code
 
     def c

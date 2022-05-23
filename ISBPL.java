@@ -2282,7 +2282,7 @@ class ISBPLStreamer {
         this.isbpl = isbpl;
     }
     
-    public ArrayList<ISBPLStream> streams = new ArrayList<>();
+    public static ArrayList<ISBPLStream> streams = new ArrayList<>();
     
     public synchronized void action(Stack<ISBPLObject> stack, int action) throws IOException {
         ISBPLStream stream;
