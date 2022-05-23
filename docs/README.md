@@ -83,3 +83,8 @@ To forcefully set the type of an object (this can cause errors if the instance o
 - `construct <...>`: Explained above.
 - `with <names separated by spaces> ;`: Pops values, and puts them into variables. The closest name to the semicolon is filled first, then the 2nd closest, etc.
 - `string! { <anything> }`: Pushes a string containing the raw words inside of the block. The words are not executed, but the block ends on the matching curly brace, meaning the number of curly braces inside of the block have to be even. Newlines are handled like spaces, any number of consecutive spaces will only be one space in the final string.
+
+
+## Extra features
+
+ISBPL's standard interpreter provides Java-Interop, meaning an API for Java and ISBPL to interact freely. This is not completely standardized, but I HIGHLY recommend implementing it in your interpreter/compiler aswell, because it has been a core feature from the start. This could, in a compiler, be done using Java Native Interface, and, in an interpreter, in many ways, depending on the language.
