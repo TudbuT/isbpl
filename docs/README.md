@@ -70,16 +70,16 @@ To forcefully set the type of an object (this can cause errors if the instance o
 
 ## Keywords
 
-- native <name>: Used to import a native function from the interpreter
-- func <name> <block>: Used to define a function
-- def <name>: Used to define a variable. To use it, the functions `<name> ::: -> a WHERE a=value` and `=<name> ::: a -> WHERE a=newValue` are generated.
-- if <block>: Used to run <block> only if the (popped) value from the top of the stack is truthy
-- while <condition block> <code block>: Runs <condition block> and checks if popped value is truthy. If so, <code block> is run. This process is repeated until it is no longer truthy.
-- stop: Pops a value, and exits as many blocks as the popped value.
-- try <block> <catch block>: Pops a string or array of strings, and catches any of the errors that these strings match, pushing the error and its message when running the catch block. The catch block is only run if there is an error.
-- do <block> <finally block>: Runs block, and, no matter what, runs the finally block aswell, regardless of any errors in the main block. This is similar to try, but does not need error types to be on the stack, and does neither catch nor push the error if one is thrown.
+- `native <name>`: Used to import a native function from the interpreter
+- `func <name> <block>`: Used to define a function
+- `def <name>`: Used to define a variable. To use it, the functions `<name> ::: -> a WHERE a=value` and `=<name> ::: a -> WHERE a=newValue` are generated.
+- `if <block>`: Used to run block only if the (popped) value from the top of the stack is truthy
+- `while <condition block> <code block>`: Runs condition block and checks if popped value is truthy. If so, code block is run. This process is repeated until it is no longer truthy.
+- `stop`: Pops a value, and exits as many blocks as the popped value.
+- `try <block> <catch block>`: Pops a string or array of strings, and catches any of the errors that these strings match, pushing the error and its message when running the catch block. The catch block is only run if there is an error.
+- `do <block> <finally block>`: Runs block, and, no matter what, runs the finally block aswell, regardless of any errors in the main block. This is similar to try, but does not need error types to be on the stack, and does neither catch nor push the error if one is thrown.
 - `{` (yes, this is a keyword name): Reads code until it hits the matching close bracket, pushes an anonymous function onto the stack, able to be called with `fcall ::: a -> WHERE a=function`.
-- fork <block>: Runs <block> in a new thread.
-- construct <...>: Explained above.
+- `fork <block>`: Runs <block> in a new thread.
+- `construct <...>`: Explained above.
 - `with <names separated by spaces> ;`: Pops values, and puts them into variables. The closest name to the semicolon is filled first, then the 2nd closest, etc.
 - `string! { <anything> }`: Pushes a string containing the raw words inside of the block. The words are not executed, but the block ends on the matching curly brace, meaning the number of curly braces inside of the block have to be even. Newlines are handled like spaces, any number of consecutive spaces will only be one space in the final string.
