@@ -1,4 +1,6 @@
 
+"Brainfuck->ISBPL transpiler" #
+
 native acopy
 "#stream.isbpl" include
 "#multi.isbpl" include
@@ -15,6 +17,7 @@ func main {
     def s args 0 aget STREAM.create.file.in stream =s
     s makeCode =s
     
+    "Write code to ISBPL file" #
     filename ".isbpl" strconcat STREAM.create.file.out stream
         ! s swap stream.write
           STREAM.close stream
@@ -31,8 +34,11 @@ func read {
     [ s STREAM.read stream dup -1 eq if { ] pop "" 2 stop } _char ] _string
 }
 
+
+"Read BF and convert to ISBPL" #
 func makeCode {
     with s ;
+    "Initialization code as stringblock" #
     def code string! { 
         "#stream.isbpl" include
         def stdin "/dev/stdin" STREAM.create.file.in stream =stdin
@@ -52,6 +58,8 @@ func makeCode {
     code
 }
 
+
+"Convert a BF char to ISBPL" #
 func parse {
     with c ;
 
