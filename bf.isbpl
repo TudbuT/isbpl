@@ -1,0 +1,69 @@
+
+native acopy
+"#stream.isbpl" include
+"#multi.isbpl" include
+
+
+func main {
+    with args ;
+    args alen 0 eq if {
+        "Error: Couldn't find file [no]\n" puts
+        1
+        2 stop
+    }
+    def filename args 0 aget =filename
+    def s args 0 aget STREAM.create.file.in stream =s
+    s makeCode =s
+    
+    filename ".isbpl" strconcat STREAM.create.file.out stream
+        ! s swap stream.write
+          STREAM.close stream
+    "Java" try {
+        s Context new eval
+    } {
+        pop pop printStackTrace0
+    }
+    0
+}
+
+func read {
+    with s ;
+    [ s STREAM.read stream dup -1 eq if { ] pop "" 2 stop } _char ] _string
+}
+
+func makeCode {
+    with s ;
+    def code string! { 
+        "#stream.isbpl" include
+        def stdin "/dev/stdin" STREAM.create.file.in stream =stdin
+        def idx 0 =idx
+        def arr 10000 anew =arr
+        while { idx 10000 lt } {
+            arr idx 0 aput
+            idx ++ =idx
+        }
+        1000 =idx
+    } =code
+
+    def c
+    while { s read dup =c "" eq not } {
+        code " " strconcat ( c parse ) strconcat =code
+    }
+    code
+}
+
+func parse {
+    with c ;
+
+    c "+" eq if { "arr idx arr idx aget ++ 256 % aput" 2 stop }
+    c "-" eq if { "arr idx arr idx aget -- 256 % aput" 2 stop }
+    c ">" eq if { "idx ++ =idx" 2 stop }
+    c "<" eq if { "idx -- =idx" 2 stop }
+    c "[" eq if { "while { arr idx aget } {" 2 stop }
+    c "]" eq if { "}" 2 stop }
+    c "." eq if { "arr idx aget _char putchar" 2 stop }
+    c "," eq if { "arr idx stdin STREAM.read stream _int 256 % aput" 2 stop }
+    ""
+}
+
+
