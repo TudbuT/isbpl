@@ -63,14 +63,14 @@ func makeCode {
 func parse {
     with c ;
 
-    c "+" eq if { "arr idx arr idx aget ++ 256 % aput" 2 stop }
-    c "-" eq if { "arr idx arr idx aget -- 256 % aput" 2 stop }
-    c ">" eq if { "idx ++ =idx" 2 stop }
-    c "<" eq if { "idx -- =idx" 2 stop }
-    c "[" eq if { "while { arr idx aget } {" 2 stop }
-    c "]" eq if { "}" 2 stop }
-    c "." eq if { "arr idx aget _char putchar" 2 stop }
-    c "," eq if { "arr idx stdin STREAM.read stream _int 256 % aput" 2 stop }
+    c "+" eq if { "arr idx arr idx aget ++ 256 % aput"                  2 stop }
+    c "-" eq if { "arr idx arr idx aget -- 256 % aput"                  2 stop }
+    c ">" eq if { "idx ++ =idx"                                         2 stop }
+    c "<" eq if { "idx -- =idx"                                         2 stop }
+    c "[" eq if { "while { arr idx aget } {"                            2 stop }
+    c "]" eq if { "}"                                                   2 stop }
+    c "." eq if { "arr idx aget _char putchar"                          2 stop }
+    c "," eq if { "arr idx stdin STREAM.read stream _int 256 % aput"    2 stop }
     ""
 }
 
