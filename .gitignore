@@ -1,3 +1,4 @@
 test*.isbpl
 *.class
 *.jar
+*.bf.isbpl
