@@ -1,6 +1,6 @@
 # Documentation: stream.isbpl
 
-
+Library to interact with IO streams and the internet.
 
 ## Functions
 
