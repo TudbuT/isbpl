@@ -3,7 +3,7 @@
 The standard library. Everything here is (supposed to be) loaded before ANY other code is executed. It is responsible for things ranging from array literals and comments,
 over type definitions, to string processing.
 
-## Functions
+## >Functions
 
 ### `ftos ::: float -> string`
 
@@ -531,7 +531,7 @@ over type definitions, to string processing.
     Duplicates the topmost value on the stack.
 
 
-## Variables
+## >Variables
 
 ### TYPE_JIO
 
@@ -625,7 +625,7 @@ over type definitions, to string processing.
 
 # Types
 
-## JIO
+## >JIO
 
     Type representing the JIO functions
 
@@ -651,7 +651,7 @@ over type definitions, to string processing.
     Returns the ISBPL representation of a java class (statics and constructors are usable here)
 
 
-## String
+## >String
 
     Any string in ISBPL
 
@@ -662,7 +662,7 @@ over type definitions, to string processing.
     Converts the string to an array of chars
 
 
-## int
+## >int
 
     Integer. Due to its use as a representation for types, it has a new method, which creates an object of the 
     type this int represents.
@@ -679,7 +679,7 @@ over type definitions, to string processing.
     Returns an int representing 0
 
 
-## Reference
+## >Reference
 
     A reference to something, useful for passing objects to functions that change the value and reading them back later
 
@@ -690,7 +690,7 @@ over type definitions, to string processing.
     The value (=? to set, like any other)
 
 
-## Array
+## >Array
 
     An array of objects, the length is set at creation and can NOT be changed.
     Counting starts at 0, length is the last possible index + 1.
