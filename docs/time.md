@@ -2,7 +2,7 @@
 
 
 
-## Functions
+## >Functions
 
 ### `sleep ::: delay -> `
 
@@ -30,7 +30,7 @@
     millis.
 
 
-## Variables
+## >Variables
 
 ### Timer
 
@@ -41,7 +41,7 @@
 
 # Types
 
-## Timer
+## >Timer
 
     Type to time the duration of operations
 
