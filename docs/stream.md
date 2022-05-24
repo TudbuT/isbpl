@@ -2,7 +2,7 @@
 
 Library to interact with IO streams and the internet.
 
-## Functions
+## >Functions
 
 ### `STREAM.stdin ::: -> path`
 
@@ -24,7 +24,7 @@ Library to interact with IO streams and the internet.
     Returns the line that was read as a string. -1 means EOF.
 
 
-## Variables
+## >Variables
 
 ### STREAM.create.file.out
 
