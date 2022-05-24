@@ -131,7 +131,6 @@ def TYPE_STRING construct string array {
 def String TYPE_STRING =String
 
 def TYPE_JIO construct jio {
-    jioclass
     ;
     class {
         pop
@@ -158,7 +157,6 @@ def JIO 0 TYPE_JIO settype =JIO
 def TYPE_REFERENCE construct reference {
     ?
 } =TYPE_REFERENCE
-"value" TYPE_REFERENCE deffield
 func reference {
     def this TYPE_REFERENCE mkinstance =this
     this =? 

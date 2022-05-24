@@ -621,3 +621,89 @@ over type definitions, to string processing.
     The typeid of chars
 
 
+---
+
+# Types
+
+## JIO
+
+    Type representing the JIO functions
+
+### Methods
+
+#### `stack ::: -> stack`
+
+    Returns the stack being used currently.
+
+
+#### `getclass ::: name -> classInstance`
+
+    Returns the java.lang.Class of the class represented by name
+
+
+#### `context ::: -> context`
+
+    Returns the java Context (do not depend on this unless you know it'll be run in the official interpreter)
+
+
+#### `class ::: name -> class`
+
+    Returns the ISBPL representation of a java class (statics and constructors are usable here)
+
+
+## String
+
+    Any string in ISBPL
+
+### Methods
+
+#### `_array ::: -> array`
+
+    Converts the string to an array of chars
+
+
+## int
+
+    Integer. Due to its use as a representation for types, it has a new method, which creates an object of the 
+    type this int represents.
+
+### Methods
+
+#### `new ::: [DYN] -> instance`
+
+    Constructs another object using its construct method OR the default constructor
+
+
+#### `construct ::: -> 0`
+
+    Returns an int representing 0
+
+
+## Reference
+
+    A reference to something, useful for passing objects to functions that change the value and reading them back later
+
+### Variables
+
+#### ?
+
+    The value (=? to set, like any other)
+
+
+## Array
+
+    An array of objects, the length is set at creation and can NOT be changed.
+    Counting starts at 0, length is the last possible index + 1.
+
+### Methods
+
+#### `foreach ::: callable(obj) -> `
+
+    Iterates through this array and calls the callable with the object (NOT the index).
+
+
+#### `construct ::: length -> array`
+
+    Constructs an array with a length
+
+
