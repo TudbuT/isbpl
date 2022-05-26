@@ -702,8 +702,29 @@ over type definitions, to string processing.
     Iterates through this array and calls the callable with the object (NOT the index).
 
 
+#### `stackTraceToString ::: -> string`
+
+    Converts this array to a stack trace string. Only use on compatible arrays!
+
+
 #### `construct ::: length -> array`
 
     Constructs an array with a length
+
+
+## >Error
+    
+    An error in ISBPL
+
+### Methods
+
+#### `stacktrace ::: -> array`
+    
+    Returns the stack trace of this error
+
+
+#### `construct ::: id msg -> error`
+    
+    Returns a new error with the id and msg
 
 
