@@ -109,6 +109,19 @@ native null
 def TYPE_FUNCTION "func" mktype =TYPE_FUNCTION
 def Function TYPE_FUNCTION =Function
 
+def Error construct error {
+    ;
+    construct {
+        with id message this ;
+        id message throw
+        this
+    }
+    stacktrace {
+        native error.stacktrace
+        error.stacktrace
+    }
+} =Error
+
 def TYPE_ARRAY construct array {
     ;
     construct {
@@ -119,6 +132,23 @@ def TYPE_ARRAY construct array {
         def lambda =lambda
         def i 0 =i
         while { i this alen lt } { this i aget lambda fcall i ++ =i }
+    }
+    stackTraceToString {
+        def this =this
+        def s "INTERPRET" =s
+        def ind " " =ind
+        {
+            with element ;
+            s "\n" ind "\\ " strconcat strconcat strconcat =s
+            def p "" =p
+            { 
+                with name ;
+                "/" name p strconcat strconcat =p
+            } element foreach
+            s p strconcat =s
+            ind " " strconcat =ind
+        } this foreach
+        s
     }
 } =TYPE_ARRAY
 def Array TYPE_ARRAY =Array
