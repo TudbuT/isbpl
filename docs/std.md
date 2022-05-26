@@ -404,6 +404,11 @@ over type definitions, to string processing.
     Makes a reference to object
 
 
+### `->? ::: object -> reference`
+
+    Makes a reference to object
+
+
 ### `neg ::: a -> math(-a)`
 
     Returns the negative of a

@@ -192,6 +192,9 @@ func reference {
     this =? 
     this
 }
+func ->? {
+    reference
+}
 
 func _string {
     def object =object
