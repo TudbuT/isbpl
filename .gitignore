@@ -2,3 +2,4 @@ test*.isbpl
 *.class
 *.jar
 *.bf.isbpl
+rust-interpreter

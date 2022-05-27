@@ -1084,6 +1084,10 @@ public class ISBPL {
             case "jio.context":
                 func = (stack) -> stack.push(toISBPL(this));
                 break;
+            case "jio.mirror":
+                // Do nothing, we are in the java interpreter already!
+                func = (stack) -> {};
+                break;
             case "null":
                 func = (stack) -> stack.push(new ISBPLObject(getType("null"), 0));
                 break;

@@ -173,13 +173,18 @@ def TYPE_JIO construct jio {
         jio.getclass
     }
     context {
-        pop
+        mirrorInterpreterData
         native jio.context
         jio.context
     }
     stack {
         pop
         "java.lang.Thread" JIO class currentThread0 getId0 JIO context debuggerIPC stack get1
+    }
+    mirrorInterpreterData {
+        pop
+        native jio.mirror
+        jio.mirror
     }
 } =TYPE_JIO
 def JIO 0 TYPE_JIO settype =JIO

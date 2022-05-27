@@ -656,6 +656,11 @@ over type definitions, to string processing.
     Returns the ISBPL representation of a java class (statics and constructors are usable here)
 
 
+#### `mirrorInterpreterData ::: -> `
+
+    If using a native interpreter, mirror the data of it to the Java one for JIO access.
+
+
 ## >String
 
     Any string in ISBPL
