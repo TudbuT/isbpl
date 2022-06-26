@@ -2157,6 +2157,10 @@ class ISBPLObject implements ISBPLUsable {
         if(this == o) return true;
         if(!(o instanceof ISBPLObject)) return false;
         ISBPLObject object = (ISBPLObject) o;
+        if(this.type == null)
+            return false;
+        if(object.type == null)
+            return false;
         if(!this.type.equals(object.type))
             return false;
         if(this.object == object.object)
