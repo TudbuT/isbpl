@@ -89,9 +89,11 @@ public class ISBPL {
                     idx++;
                     AtomicInteger i = new AtomicInteger(idx);
                     ISBPLCallable callable = readCallable("if", i, words, file);
+                    callable.addUse();
                     if(stack.pop().isTruthy()) {
                         callable.call(stack);
                     }
+                    callable.removeUse();
                     return i.get();
                 };
             case "while":
@@ -101,11 +103,15 @@ public class ISBPL {
                     ISBPLCallable cond = readCallable("while-condition", i, words, file);
                     i.getAndIncrement();
                     ISBPLCallable block = readCallable("while", i, words, file);
+                    cond.addUse();
+                    block.addUse();
                     cond.call(stack);
                     while (stack.pop().isTruthy()) {
                         block.call(stack);
                         cond.call(stack);
                     }
+                    cond.removeUse();
+                    block.removeUse();
                     return i.get();
                 };
             case "stop":
@@ -136,6 +142,8 @@ public class ISBPL {
                     ISBPLCallable block = readCallable("try", i, words, file);
                     i.getAndIncrement();
                     ISBPLCallable catcher = readCallable("catch", i, words, file);
+                    block.addUse();
+                    catcher.addUse();
                     int stackHeight = stack.size();
                     try {
                         try {
@@ -170,6 +178,8 @@ public class ISBPL {
                         while(stack.size() < stackHeight) {
                             stack.push(getNullObject());
                         }
+                        block.removeUse();
+                        catcher.removeUse();
                     }
                     return i.get();
                 };
@@ -180,10 +190,14 @@ public class ISBPL {
                     ISBPLCallable block = readCallable("do-main", i, words, file);
                     i.getAndIncrement();
                     ISBPLCallable catcher = readCallable("do-finally", i, words, file);
+                    block.addUse();
+                    catcher.addUse();
                     try {
                         block.call(stack);
                     } finally {
                         catcher.call(stack);
+                        block.removeUse();
+                        catcher.removeUse();
                     }
                     return i.get();
                 };
@@ -2756,8 +2770,11 @@ class ISBPLFrame implements ISBPLUsable {
     }
     
     public void add(String name, ISBPLCallable callable) {
-        map.put(name, callable);
         callable.usedBy(this);
+        callable = map.put(name, callable);
+        if(callable != null) {
+            callable.unusedBy(this);
+        }
     }
 
     public void define(String name, ISBPLObject value) {
