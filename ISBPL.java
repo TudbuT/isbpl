@@ -1723,8 +1723,9 @@ public class ISBPL {
                 String w = word.toString();
                 while(w.startsWith("(") && w.length() > 1)
                     w = w.substring(1);
-                while(w.endsWith(")") && w.length() > 1)
-                    w = w.substring(0, w.length() - 1);
+                if(!w.startsWith("\""))
+                    while(w.endsWith(")") && w.length() > 1)
+                        w = w.substring(0, w.length() - 1);
                 words.add(w);
                 word = new StringBuilder();
             }
@@ -1735,8 +1736,9 @@ public class ISBPL {
         String w = word.toString();
         while(w.startsWith("(") && w.length() > 1)
             w = w.substring(1);
-        while(w.endsWith(")") && w.length() > 1)
-            w = w.substring(0, w.length() - 1);
+        if(!w.startsWith("\""))
+            while(w.endsWith(")") && w.length() > 1)
+                w = w.substring(0, w.length() - 1);
         words.add(w);
 
         ArrayList<String> cleanWords = new ArrayList<>();
