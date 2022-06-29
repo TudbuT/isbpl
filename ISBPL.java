@@ -349,6 +349,7 @@ public class ISBPL {
                     ISBPLObject o = stack.pop();
                     i.checkType(getType("int"));
                     o.checkType(getType("array"));
+                    toPut.usedBy(o);
                     ((ISBPLObject[]) o.object)[((int) i.object)] = toPut;
                 };
                 break;
@@ -372,7 +373,13 @@ public class ISBPL {
                     ISBPLObject arr1 = stack.pop();
                     arr1.checkType(getType("array"));
                     arr2.checkType(getType("array"));
-                    System.arraycopy((ISBPLObject[]) arr1.object, (int) idx1.toLong(), (ISBPLObject[]) arr2.object, (int) idx2.toLong(), (int) len.toLong());
+                    ISBPLObject[] o1 = (ISBPLObject[]) arr1.object;
+                    ISBPLObject[] o2 = (ISBPLObject[]) arr2.object;
+                    for(int i = 0; i < o1.length; i++) {
+                        o2[i].unusedBy(arr2);
+                        o1[i].usedBy(arr2);
+                    }
+                    System.arraycopy(o1, (int) idx1.toLong(), o2, (int) idx2.toLong(), (int) len.toLong());
                     stack.push(arr2);
                 };
                 break;
@@ -1190,8 +1197,10 @@ public class ISBPL {
     
     ISBPLObject nullObj = null;
     public ISBPLObject getNullObject() {
-        if(nullObj == null || nullObj.type == null)
+        if(nullObj == null || nullObj.type.id == -4) {
             nullObj = new ISBPLObject(getType("null"), 0);
+            nullObj.addUse();
+        }
         return nullObj;
     }
     
