@@ -1806,7 +1806,7 @@ public class ISBPL {
                 word.append('"');
                 isInString = true;
             }
-            else if(c == ' ' || c == '°' || c == 'ß' || c == '§') {
+            else if(c == ' ' || c == '\'' || c == ':' || c == '°' || c == 'ß' || c == '§') {
                 String w = word.toString();
                 while(w.startsWith("(") && w.length() > 1)
                     w = w.substring(1);
