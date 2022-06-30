@@ -36,7 +36,7 @@ public class ISBPL {
     public static PrintStream gErrorStream = System.err;
     
     static boolean debug = false, printCalls = false;
-    public ISBPLDebugger.IPC debuggerIPC = new ISBPLDebugger.IPC();
+    public static ISBPLDebugger.IPC debuggerIPC = new ISBPLDebugger.IPC();
     ArrayList<ISBPLType> types = new ArrayList<>();
     ISBPLFrame level0 = new ISBPLFrame("isbpl", this);
     final ISBPLThreadLocal<Stack<File>> fileStack = ISBPLThreadLocal.withInitial(Stack::new);
@@ -132,10 +132,10 @@ public class ISBPL {
                         allowed = new String[] { toJavaString(array) };
                     }
                     else {
-                        ISBPLObject[] arr = ((ISBPLObject[]) array.object);
+                        ISBPLArray arr = ((ISBPLArray) array.object);
                         allowed = new String[arr.length];
                         for (int i = 0 ; i < arr.length ; i++) {
-                            allowed[i] = toJavaString(arr[i]);
+                            allowed[i] = toJavaString(arr.get(i));
                         }
                     }
                     AtomicInteger i = new AtomicInteger(idx);
@@ -336,7 +336,7 @@ public class ISBPL {
                 func = (ISBPLStack<ISBPLObject> stack) -> {
                     ISBPLObject o = stack.pop();
                     o.checkType(getType("array"));
-                    stack.push(new ISBPLObject(getType("int"), ((ISBPLObject[]) o.object).length));
+                    stack.push(new ISBPLObject(getType("int"), ((ISBPLArray) o.object).length));
                 };
                 break;
             case "aget":
@@ -345,7 +345,7 @@ public class ISBPL {
                     ISBPLObject o = stack.pop();
                     i.checkType(getType("int"));
                     o.checkType(getType("array"));
-                    stack.push(((ISBPLObject[]) o.object)[((int) i.object)]);
+                    stack.push(((ISBPLArray) o.object).get(((int) i.object)));
                 };
                 break;
             case "aput":
@@ -355,22 +355,14 @@ public class ISBPL {
                     ISBPLObject o = stack.pop();
                     i.checkType(getType("int"));
                     o.checkType(getType("array"));
-                    ((ISBPLObject[]) o.object)[((int) i.object)].unusedBy(o);
-                    toPut.usedBy(o);
-                    ((ISBPLObject[]) o.object)[((int) i.object)] = toPut;
+                    ((ISBPLArray) o.object).set(((int) i.object), toPut);
                 };
                 break;
             case "anew":
                 func = (ISBPLStack<ISBPLObject> stack) -> {
                     ISBPLObject i = stack.pop();
                     i.checkType(getType("int"));
-                    ISBPLObject[] arr = new ISBPLObject[((int) i.object)];
-                    ISBPLObject it = new ISBPLObject(getType("array"), arr);
-                    for (int j = 0 ; j < arr.length ; j++) {
-                        arr[j] = getNullObject();
-                        arr[j].usedBy(it);
-                    }
-                    stack.push(it);
+                    stack.push(new ISBPLObject(getType("array"), new ISBPLArray(((int) i.object), getNullObject())));
                 };
                 break;
             case "acopy":
@@ -382,15 +374,14 @@ public class ISBPL {
                     ISBPLObject arr1 = stack.pop();
                     arr1.checkType(getType("array"));
                     arr2.checkType(getType("array"));
-                    ISBPLObject[] o1 = (ISBPLObject[]) arr1.object;
-                    ISBPLObject[] o2 = (ISBPLObject[]) arr2.object;
-                    for(int i = (int) idx1.toLong(); i < (int) idx1.toLong() + (int) len.toLong(); i++) {
-                        o1[i].usedBy(arr2);
+                    ISBPLArray o1 = (ISBPLArray) arr1.object;
+                    ISBPLArray o2 = (ISBPLArray) arr2.object;
+                    int idx1_ = (int) idx1.toLong();
+                    int idx2_ = (int) idx2.toLong();
+                    int len_ = (int) len.toLong();
+                    for(int i1 = idx1_, i2 = idx2_; i1 < idx1_ + len_ && i1 < o1.length && i2 < o2.length; i1++, i2++) {
+                        o2.set(i2, o1.get(i1));
                     }
-                    for(int i = (int) idx2.toLong(); i < (int) idx2.toLong() + (int) len.toLong(); i++) {
-                        o2[i].unusedBy(arr2);
-                    }
-                    System.arraycopy(o1, (int) idx1.toLong(), o2, (int) idx2.toLong(), (int) len.toLong());
                     stack.push(arr2);
                 };
                 break;
@@ -399,13 +390,8 @@ public class ISBPL {
                     ISBPLObject a = stack.pop();
                     if(a.type.equals(getType("array")))
                         stack.push(a);
-                    else if(a.object instanceof ISBPLObject[]) {
-                        ISBPLObject[] o = (ISBPLObject[]) a.object;
-                        ISBPLObject it = new ISBPLObject(getType("array"), a.object);
-                        for(int i = 0; i < o.length; i++) {
-                            o[i].usedBy(it);
-                        }
-                        stack.push(it);
+                    else if(a.object instanceof ISBPLArray) {
+                        stack.push(new ISBPLObject(getType("array"), a.object));
                     } else
                         typeError(a.type.name, "array");
                 };
@@ -568,9 +554,9 @@ public class ISBPL {
                         int e = ((int) end.object);
                         byte[] bytes = new byte[e - b];
                         f.read(bytes, b, e);
-                        ISBPLObject[] arr = new ISBPLObject[bytes.length];
+                        ISBPLArray arr = new ISBPLArray(bytes.length, getNullObject());
                         for (int i = 0 ; i < arr.length ; i++) {
-                            arr[i] = new ISBPLObject(getType("byte"), bytes[i]);
+                            arr.set(i, new ISBPLObject(getType("byte"), bytes[i]));
                         }
                         stack.push(new ISBPLObject(getType("array"), arr));
                     }
@@ -633,6 +619,7 @@ public class ISBPL {
                     ISBPLObject i = stack.pop();
                     ISBPLObject o = stack.pop();
                     i.checkType(getType("int"));
+                    // TODO fix: o.object relocation if array
                     stack.push(new ISBPLObject(types.get(((int) i.object)), o.object));
                 };
                 break;
@@ -1029,7 +1016,7 @@ public class ISBPL {
                 break;
             case "_getvars":
                 func = (ISBPLStack<ISBPLObject> stack) -> {
-                    ISBPLObject[] objects = new ISBPLObject[frameStack.get().size()];
+                    ISBPLArray objects = new ISBPLArray(frameStack.get().size(), getNullObject());
                     int i = 0;
                     for (ISBPLFrame map : frameStack.get()) {
                         ArrayList<ISBPLObject> strings = new ArrayList<>();
@@ -1038,10 +1025,9 @@ public class ISBPL {
                                 strings.add(toISBPLString(key.substring(1)));
                             }
                         }
-                        objects[i++] = new ISBPLObject(getType("array"), strings.toArray(new ISBPLObject[0]));
+                        objects.set(i++, new ISBPLObject(getType("array"), new ISBPLArray(strings.toArray(new ISBPLObject[0]))));
                     }
-                    ISBPLObject array = new ISBPLObject(getType("array"), objects);
-                    stack.push(array);
+                    stack.push(new ISBPLObject(getType("array"), objects));
                 };
                 break;
             case "stacksize":
@@ -1198,7 +1184,7 @@ public class ISBPL {
                     error.checkType(getType("error"));
                     Throwable t = (Throwable) error.object;
                     Stack<ISBPLFrame> frames = stackTraces.get(t);
-                    ISBPLObject[] array = new ISBPLObject[frames.size()];
+                    ISBPLArray array = new ISBPLArray(frames.size(), getNullObject());
                     for(int i = 0; i < frames.size(); i++) {
                         ISBPLFrame frame = frames.get(i);
                         ArrayList<ISBPLObject> arr = new ArrayList<>();
@@ -1206,7 +1192,7 @@ public class ISBPL {
                             arr.add(toISBPLString(frame.name));
                             frame = frame.parent;
                         }
-                        array[i] = new ISBPLObject(getType("array"), arr.toArray(new ISBPLObject[0]));
+                        array.set(i, new ISBPLObject(getType("array"), arr.toArray(new ISBPLObject[0])));
                     }
                     stack.push(new ISBPLObject(getType("array"), array));
                 };
@@ -1437,14 +1423,14 @@ public class ISBPL {
                 typeError("string", expectedType.getName());
         }
         if (type.equals(getType("array"))) {
-            ISBPLObject[] isbplArray = ((ISBPLObject[]) o.object);
+            ISBPLArray isbplArray = ((ISBPLArray) o.object);
             Object array = new Object[isbplArray.length];
             if(expectedType.isArray())
                 array = Array.newInstance(expectedType.getComponentType(), isbplArray.length);
             else
                 typeError("array", "matching-array");
             for (int i = 0 ; i < isbplArray.length ; i++) {
-                Object obj = fromISBPL(isbplArray[i], expectedType.getComponentType());
+                Object obj = fromISBPL(isbplArray.get(i), expectedType.getComponentType());
                 Array.set(array, i, obj == null && expectedType.getComponentType().isPrimitive() ? primitiveDefault(expectedType.getComponentType()) : obj);
             }
             return array;
@@ -1498,9 +1484,9 @@ public class ISBPL {
         if (object instanceof Double)
             return new ISBPLObject(getType("double"), object);
         if (object.getClass().isArray()) {
-            ISBPLObject[] isbplArray = new ISBPLObject[Array.getLength(object)];
+            ISBPLArray isbplArray = new ISBPLArray(Array.getLength(object), getNullObject());
             for (int i = 0 ; i < isbplArray.length ; i++) {
-                isbplArray[i] = toISBPL(Array.get(object, i));
+                isbplArray.set(i, toISBPL(Array.get(object, i)));
             }
             o.type = getType("array");
             object = isbplArray;
@@ -1585,20 +1571,24 @@ public class ISBPL {
     
     public String toJavaString(ISBPLObject string) {
         string.checkType(getType("string"));
-        ISBPLObject[] array = ((ISBPLObject[]) string.object);
+        ISBPLArray array = ((ISBPLArray) string.object);
         char[] chars = new char[array.length];
-        for (int i = 0 ; i < array.length ; i++) {
-            chars[i] = ((char) array[i].object);
+        try {
+            for (int i = 0 ; i < array.length ; i++) {
+                chars[i] = ((char) array.get(i).object);
+            }
+        } catch(NullPointerException e) {
+            throw new IllegalStateException(string + " has null-chars.");
         }
         return new String(chars);
     }
     
     public ISBPLObject toISBPLString(String s) {
         char[] chars = s.toCharArray();
-        ISBPLObject[] objects = new ISBPLObject[chars.length];
+        ISBPLArray objects = new ISBPLArray(chars.length, getNullObject());
         ISBPLType type = getType("char");
         for (int i = 0 ; i < chars.length ; i++) {
-            objects[i] = new ISBPLObject(type, chars[i]);
+            objects.set(i, new ISBPLObject(type, chars[i]));
         }
         return new ISBPLObject(getType("string"), objects);
     }
@@ -1707,7 +1697,7 @@ public class ISBPL {
                             ISBPL.gErrorStream.println("LastWords: " + lastWords);
                             ISBPL.gErrorStream.println("FileStack: " + fileStack);
                             ISBPL.gErrorStream.println("Stack: " + stack);
-                            System.exit(1);
+                            throw new Error("ISBPL WORD PARSER");
                         }
                         try {
                             ISBPLType type = stack.peek().type;
@@ -1737,7 +1727,7 @@ public class ISBPL {
                             ISBPL.gErrorStream.println("LastWords: " + lastWords);
                             ISBPL.gErrorStream.println("FileStack: " + fileStack);
                             ISBPL.gErrorStream.println("Stack: " + stack);
-                            System.exit(1);
+                            throw new Error("ISBPL WORD PARSER");
                         }
                     }
                     ISBPLCallable func = frameStack.get().peek().resolve(word);
@@ -1980,9 +1970,9 @@ public class ISBPL {
     }
     
     private static ISBPLObject argarray(ISBPL isbpl, String[] args) {
-        ISBPLObject[] array = new ISBPLObject[args.length - 1];
+        ISBPLArray array = new ISBPLArray(args.length - 1, null);
         for (int i = 1 ; i < args.length ; i++) {
-            array[i - 1] = isbpl.toISBPLString(args[i]);
+            array.set(i - 1, isbpl.toISBPLString(args[i]));
         }
         return new ISBPLObject(isbpl.getType("array"), array);
     }
@@ -2026,9 +2016,182 @@ public class ISBPL {
     }
 }
 
+class ISBPLFastList<T> {
+    private final LinkedList<T>[] items;
+    private final int[] lengths;
+    private final int cap;
+    private int size = 0;
+
+    public ISBPLFastList(int hashcap) {
+        cap = hashcap;
+        items = new LinkedList[hashcap];
+        lengths = new int[hashcap];
+        for(int i = 0; i < hashcap; i++) {
+            items[i] = new LinkedList<>();
+            lengths[i] = 0;
+        }
+    }
+
+    public boolean contains(T item) {
+        return items[Math.abs(item.hashCode() % cap)].contains(item);
+    }
+
+    public void add(T item) {
+        int i = Math.abs(item.hashCode() % cap);
+        items[i].add(item);
+        lengths[i]++;
+        size++;
+    }
+
+    public T get(int i) {
+        int n = 0; // end of current scope
+        int x = 0; // start of current scope
+        int l = 0; // scope
+        for(; l < cap; l++) {
+            n += lengths[l];
+            if(n > i) // if end of current scope is bigger than i (that means i is within current scope)
+                break;
+            x += lengths[l];
+        }
+        return items[l].get(i - x);
+    }
+
+    public LinkedList<T> getByHash(int hash) {
+        return items[Math.abs(hash % cap)];
+    }
+
+    public T set(int i, T item) {
+        int n = 0; // end of current scope
+        int x = 0; // start of current scope
+        int l = 0; // scope
+        for(; l < cap; l++) {
+            n += lengths[l];
+            if(n > i) // if end of current scope is bigger than i (that means i is within current scope)
+                break;
+            x += lengths[l];
+        }
+        return items[l].set(i - x, item);
+    }
+
+    public T[] toArray(T... in) {
+        T[] ts = (T[]) Array.newInstance(in.getClass().getComponentType(), size);
+        for(int i = 0, scope = 0, idx = 0; i < size && scope < cap; i++, idx++) {
+            while(idx == lengths[scope]) {
+                idx = 0;
+                scope++;
+            }
+            ts[i] = items[scope].get(idx);
+        }
+        return ts;
+    }
+
+    public T remove(int i) {
+        int n = 0; // end of current scope
+        int x = 0; // start of current scope
+        int l = 0; // scope
+        for(; l < cap; l++) {
+            n += lengths[l];
+            if(n > i) // if end of current scope is bigger than i (that means i is within current scope)
+                break;
+            x += lengths[l];
+        }
+        T it = items[l].remove(i - x);
+        lengths[l]--;
+        size--;
+        return it;
+    }
+
+    public boolean remove(T item) {
+        int i = Math.abs(item.hashCode() % cap);
+        if(items[i].remove(item)) {
+            lengths[i]--;
+            size--;
+            return true;
+        }
+        return false;
+    }
+
+    public boolean isEmpty() {
+        return size == 0;
+    }
+
+    public int size() {
+        return size;
+    }
+}
+
+class ISBPLInstanceMap<T, O> {
+    ISBPLFastList<Pair<T, O>> pairs = new ISBPLFastList<>(32);
+    private static class Pair<T, O> {
+        T t;
+        O o;
+
+        public Pair(T t, O o) {
+            this.t = t;
+            this.o = o;
+        }
+
+        @Override
+        public int hashCode() { return t.hashCode(); }
+    }
+
+    public O get(T t) {
+        LinkedList<Pair<T, O>> list = pairs.getByHash(t.hashCode());
+        for(int i = 0; i < list.size(); i++) {
+            // instance map, use strict equal!
+            if(list.get(i).t == t) {
+                return list.get(i).o;
+            }
+        }
+        return null;
+    }
+
+    public O put(T t, O o) {
+        LinkedList<Pair<T, O>> list = pairs.getByHash(t.hashCode());
+        for(int i = 0; i < list.size(); i++) {
+            // instance map, use strict equal!
+            if(list.get(i).t == t) {
+                O r = list.get(i).o;
+                list.get(i).o = o;
+                return r;
+            }
+        }
+        list.add(new Pair<>(t, o));
+        return null;
+    }
+
+    public boolean containsKey(T t) {
+        return get(t) != null;
+    }
+
+    public boolean remove(T t) {
+        LinkedList<Pair<T, O>> list = pairs.getByHash(t.hashCode());
+        for(int i = 0; i < list.size(); i++) {
+            // instance map, use strict equal!
+            if(list.get(i).t == t) {
+                O r = list.get(i).o;
+                list.remove(i);
+                return true;
+            }
+        }
+        return false;
+    }
+    public boolean removeValue(O o) {
+        for(int i = 0; i < pairs.size(); i++) {
+            // instance map, use strict equal!
+            if(pairs.get(i).o == o) {
+                T r = pairs.get(i).t;
+                pairs.remove(i);
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
 interface ISBPLUsable {
-    static HashMap<ISBPLUsable, Integer> uses = new HashMap<>();
-    static HashMap<ISBPLUsable, ArrayList<ISBPLUsable>> children = new HashMap<>();
+    static ISBPLInstanceMap<ISBPLUsable, Integer> uses = new ISBPLInstanceMap<>();
+    static ISBPLInstanceMap<ISBPLUsable, ISBPLFastList<ISBPLUsable>> children = new ISBPLInstanceMap<>();
 
 
     default void usedBy(ISBPLUsable other) {
@@ -2037,8 +2200,8 @@ interface ISBPLUsable {
     }
     default void unusedBy(ISBPLUsable other) {
         if(!other.isUseless())
-            other.removeChild(this);
-        removeUse();
+            if(other.removeChild(this))
+                removeUse();
     }
     default void addUse() {
         setUses(getUses() + 1);
@@ -2053,11 +2216,11 @@ interface ISBPLUsable {
             if(ISBPL.debug) {
                 ISBPL.gErrorStream.println("Garbage collecting " + this);
             }
-            ArrayList<ISBPLUsable> usables = getChildren();
-            for(int i = 0; i < usables.size(); i++) {
-                usables.get(i).unusedBy(this);
+            ISBPLFastList<ISBPLUsable> usables = getChildren();
+            ISBPLUsable[] arr = usables.toArray();
+            for(int i = 0; i < arr.length; i++) {
+                arr[i].unusedBy(this);
             }
-            ISBPL.uncollected++;
             useless();
             uses.remove(this);
             children.remove(this);
@@ -2073,22 +2236,23 @@ interface ISBPLUsable {
             uses.put(this, 0);
         return uses.get(this);
     }
-    default ArrayList<ISBPLUsable> getChildren() {
+    default ISBPLFastList<ISBPLUsable> getChildren() {
         if(!children.containsKey(this))
-            children.put(this, new ArrayList<>());
+            children.put(this, new ISBPLFastList<>(8));
         return children.get(this);
     }
     default void addChild(ISBPLUsable it) {
         getChildren().add(it);
     }
-    default void removeChild(ISBPLUsable it) {
-        getChildren().remove(it);
+    default boolean removeChild(ISBPLUsable it) {
+        return getChildren().remove(it);
     }
     default boolean isUseless() {
         return !children.containsKey(this);
     }
 
     default void useless() {}
+
 }
 
 interface ISBPLKeyword {
@@ -2109,17 +2273,6 @@ class ISBPLType implements ISBPLUsable {
     public ISBPLType(String name, int id) {
         this.name = name;
         this.id = id;
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-        ISBPL.uncollected--;
-        if(!isUseless())
-            ISBPL.gErrorStream.println("[ISBPL] [Please report] JVM GC'd " + this + ", but it was not picked up by ISBPL's GC!");
-        if(ISBPL.debug) {
-            ISBPL.gErrorStream.println("JVM deleting " + this);
-        }
-        super.finalize();
     }
 
     public void useless() {
@@ -2170,6 +2323,86 @@ class ISBPLType implements ISBPLUsable {
         }
         return false;
     }
+
+    protected void finalize() throws Throwable {
+        if(!isUseless())
+            ISBPL.gErrorStream.println("[ISBPL] [Please report] JVM GC'd " + this + ", but it was not picked up by ISBPL's GC!");
+        if(ISBPL.debug) {
+            ISBPL.gErrorStream.println("JVM deleting " + this);
+        }
+        super.finalize();
+    }
+}
+
+class ISBPLArray implements ISBPLUsable {
+    private ISBPLObject[] backend;
+    public int length;
+
+    public ISBPLArray(ISBPLObject[] back) {
+        this.length = back.length;
+        backend = back;
+        for(int i = 0; i < length; i++) {
+            backend[i].usedBy(this);
+        }
+    }
+
+    public ISBPLArray(int length, ISBPLObject initial) {
+        this.length = length;
+        backend = new ISBPLObject[length];
+        for(int i = 0; i < length; i++) {
+            backend[i] = initial;
+            if(initial != null)
+                initial.usedBy(this);
+        }
+    }
+
+    public void set(int i, ISBPLObject item) {
+        item.usedBy(this);
+        if(backend[i] != null)
+            backend[i].unusedBy(this);
+        backend[i] = item;
+    }
+
+    public ISBPLObject get(int i) {
+        return backend[i];
+    }
+
+    public String toString() {
+        StringBuilder s = new StringBuilder("[");
+        for(int i = 0; i < length; i++) {
+            s.append(backend[i]);
+            if(i != length - 1) {
+                s.append(", ");
+            }
+        }
+        s.append("]");
+        return s.toString();
+    }
+
+    public boolean equals(Object o) {
+        if(this == o) return true;
+        if(!(o instanceof ISBPLArray)) return false;
+        ISBPLArray object = (ISBPLArray) o;
+        if(object.length != length) return false;
+        for(int i = 0; i < length; i++) {
+            if(!object.backend[i].equals(backend[i])) return false;
+        }
+        return true;
+    }
+
+    public void useless() {
+        backend = null;
+        length = -1;
+    }
+
+    protected void finalize() throws Throwable {
+        if(!isUseless())
+            ISBPL.gErrorStream.println("[ISBPL] [Please report] JVM GC'd " + this + ", but it was not picked up by ISBPL's GC!");
+        if(ISBPL.debug) {
+            ISBPL.gErrorStream.println("JVM deleting " + this);
+        }
+        super.finalize();
+    }
 }
 
 class ISBPLObject implements ISBPLUsable {
@@ -2183,17 +2416,6 @@ class ISBPLObject implements ISBPLUsable {
         if(object instanceof ISBPLUsable) {
             ((ISBPLUsable)object).usedBy(this);
         }
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-        ISBPL.uncollected--;
-        if(!isUseless())
-            ISBPL.gErrorStream.println("[ISBPL] [Please report] JVM GC'd " + this + ", but it was not picked up by ISBPL's GC!");
-        if(ISBPL.debug) {
-            ISBPL.gErrorStream.println("JVM deleting " + this);
-        }
-        super.finalize();
     }
 
     public void useless() {
@@ -2224,18 +2446,16 @@ class ISBPLObject implements ISBPLUsable {
             return false;
         if(object.object == null)
             return false;
-        if(this.object.getClass().isArray() || object.object.getClass().isArray()) {
-            if(this.object.getClass().isArray() && object.object.getClass().isArray()) {
-                return Arrays.equals((Object[]) this.object, (Object[]) object.object);
-            }
-            else {
-                return false;
-            }
-        }
         return this.object.equals(object.object);
     }
     
     public void checkType(ISBPLType wanted) {
+        if(type == null) {
+            throw new IllegalStateException("ISBPLObject was checked for its type, but the object has already been garbage-collected.");
+        }
+        if(wanted == null) {
+            throw new IllegalArgumentException("ISBPLObject was checked for its type with the wanted type being null.");
+        }
         Queue<ISBPLType> types = new LinkedList<>();
         types.add(type);
         while (!types.isEmpty()) {
@@ -2249,6 +2469,9 @@ class ISBPLObject implements ISBPLUsable {
     }
     
     public void checkTypeMulti(ISBPLType... wanted) {
+        if(type == null) {
+            throw new IllegalStateException("ISBPLObject was checked for its type, but the object has already been garbage-collected.");
+        }
         StringBuilder wantedNames = new StringBuilder();
         for (int i = 0 ; i < wanted.length ; i++) {
             wantedNames.append(" ").append(wanted[i].name);
@@ -2267,16 +2490,6 @@ class ISBPLObject implements ISBPLUsable {
     
     @Override
     public String toString() {
-        if(type != null && object instanceof ISBPLObject[]) {
-            try {
-                return "ISBPLObject{" +
-                       "type=" + type +
-                       ", object=" + Arrays.toString(((ISBPLObject[]) object)) +
-                       '}';
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
         return "ISBPLObject{" +
                "type=" + type +
                ", object=" + object +
@@ -2341,6 +2554,15 @@ class ISBPLObject implements ISBPLUsable {
             return -(double) (Double) object;
         }
         throw new ISBPLError("InvalidArgument", "This type of number can't be negated!");
+    }
+
+    protected void finalize() throws Throwable {
+        if(!isUseless())
+            ISBPL.gErrorStream.println("[ISBPL] [Please report] JVM GC'd " + this + ", but it was not picked up by ISBPL's GC!");
+        if(ISBPL.debug) {
+            ISBPL.gErrorStream.println("JVM deleting " + this);
+        }
+        super.finalize();
     }
 }
 
@@ -2740,20 +2962,38 @@ class ISBPLThreadLocal<T> {
 
 class ISBPLStack<T extends ISBPLUsable> extends Stack<T> implements ISBPLUsable {
 
-    final ArrayList<T> toBeMarked = new ArrayList<>();
+    final ISBPLFastList<T> toBeMarked = new ISBPLFastList<>(3);
 
     @Override
     public T push(T t) {
         if(t == null)
             new IllegalArgumentException("item is null").printStackTrace();
+        if(t.isUseless()) {
+            throw new IllegalStateException("item was garbage-collected (" + t + ")");
+        }
+        if(t instanceof ISBPLObject && ((ISBPLObject) t).type == null) {
+            throw new IllegalStateException("item was garbage-collected (" + t + ") but was not marked");
+        }
         t.usedBy(this);
         return super.push(t);
+    }
+
+    @Override
+    public T peek() {
+        T t = super.peek();
+        if(t.isUseless()) {
+            throw new IllegalStateException("item was garbage-collected (" + t + ") WHILE ON STACK!");
+        }
+        return t;
     }
 
     @Override
     public T pop() {
         T t = super.pop();
         toBeMarked.add(t);
+        if(t.isUseless()) {
+            throw new IllegalStateException("item was garbage-collected (" + t + ") WHILE ON STACK!");
+        }
         return t;
     }
 
@@ -2766,6 +3006,15 @@ class ISBPLStack<T extends ISBPLUsable> extends Stack<T> implements ISBPLUsable 
             toBeMarked.get(0).unusedBy(this);
             toBeMarked.remove(0);
         }
+    }
+
+    protected void finalize() throws Throwable {
+        if(!isUseless())
+            ISBPL.gErrorStream.println("[ISBPL] [Please report] JVM GC'd " + this + ", but it was not picked up by ISBPL's GC!");
+        if(ISBPL.debug) {
+            ISBPL.gErrorStream.println("JVM deleting " + this);
+        }
+        super.finalize();
     }
 }
 
@@ -2787,17 +3036,6 @@ class ISBPLFrame implements ISBPLUsable {
         this.context = context;
         parent = parentFrame;
         parentFrame.usedBy(this);
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-        ISBPL.uncollected--;
-        if(!isUseless())
-            ISBPL.gErrorStream.println("[ISBPL] [Please report] JVM GC'd " + this + ", but it was not picked up by ISBPL's GC!");
-        if(ISBPL.debug) {
-            ISBPL.gErrorStream.println("JVM deleting " + this);
-        }
-        super.finalize();
     }
 
     public void useless() {
@@ -2834,20 +3072,32 @@ class ISBPLFrame implements ISBPLUsable {
     }
 
     public void define(String name, ISBPLObject value) {
+        value.usedBy(this);
         Object var = new Object();
-        variables.put(var, value);
+        ISBPLObject old = variables.put(var, value);
+        if(old != null) {
+            old.unusedBy(this);
+        }
         add(name, (stack) -> stack.push(variables.get(var)));
         add("=" + name, (stack) -> {
             ISBPLObject o = stack.pop();
             o.usedBy(this);
             variables.put(var, o).unusedBy(this);
         });
-        value.usedBy(this);
     }
     
     public HashMap<String, ISBPLCallable> all() {
         HashMap<String, ISBPLCallable> r = parent == null ? new HashMap<>() : parent.all();
         r.putAll(map);
         return r;
+    }
+
+    protected void finalize() throws Throwable {
+        if(!isUseless())
+            ISBPL.gErrorStream.println("[ISBPL] [Please report] JVM GC'd " + this + ", but it was not picked up by ISBPL's GC!");
+        if(ISBPL.debug) {
+            ISBPL.gErrorStream.println("JVM deleting " + this);
+        }
+        super.finalize();
     }
 }

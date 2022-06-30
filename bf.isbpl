@@ -1,7 +1,6 @@
 
 "Brainfuck->ISBPL transpiler" #
 
-native acopy
 "#stream.isbpl" include
 "#multi.isbpl" include
 
