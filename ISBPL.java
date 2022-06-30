@@ -284,7 +284,13 @@ public class ISBPL {
                             }
                             Object var = new Object();
                             addFunction(type, word2, (stack1) -> stack1.push(type.varget(stack1.pop()).getOrDefault(var, getNullObject())));
-                            addFunction(type, "=" + word2, (stack1) -> type.varget(stack1.pop()).put(var, stack1.pop()));
+                            addFunction(type, "=" + word2, (stack1) -> {
+                                ISBPLObject o = stack1.pop();
+                                ISBPLObject p = stack1.pop();
+                                p.usedBy(o);
+                                p = type.varget(o).put(var, p);
+                                if(p != null) p.unusedBy(o);
+                            });
                         }
                     }
                     stack.push(new ISBPLObject(getType("int"), type.id));
@@ -349,6 +355,7 @@ public class ISBPL {
                     ISBPLObject o = stack.pop();
                     i.checkType(getType("int"));
                     o.checkType(getType("array"));
+                    ((ISBPLObject[]) o.object)[((int) i.object)].unusedBy(o);
                     toPut.usedBy(o);
                     ((ISBPLObject[]) o.object)[((int) i.object)] = toPut;
                 };
@@ -358,10 +365,12 @@ public class ISBPL {
                     ISBPLObject i = stack.pop();
                     i.checkType(getType("int"));
                     ISBPLObject[] arr = new ISBPLObject[((int) i.object)];
+                    ISBPLObject it = new ISBPLObject(getType("array"), arr);
                     for (int j = 0 ; j < arr.length ; j++) {
                         arr[j] = getNullObject();
+                        arr[j].usedBy(it);
                     }
-                    stack.push(new ISBPLObject(getType("array"), arr));
+                    stack.push(it);
                 };
                 break;
             case "acopy":
@@ -375,9 +384,11 @@ public class ISBPL {
                     arr2.checkType(getType("array"));
                     ISBPLObject[] o1 = (ISBPLObject[]) arr1.object;
                     ISBPLObject[] o2 = (ISBPLObject[]) arr2.object;
-                    for(int i = 0; i < o1.length; i++) {
-                        o2[i].unusedBy(arr2);
+                    for(int i = (int) idx1.toLong(); i < (int) idx1.toLong() + (int) len.toLong(); i++) {
                         o1[i].usedBy(arr2);
+                    }
+                    for(int i = (int) idx2.toLong(); i < (int) idx2.toLong() + (int) len.toLong(); i++) {
+                        o2[i].unusedBy(arr2);
                     }
                     System.arraycopy(o1, (int) idx1.toLong(), o2, (int) idx2.toLong(), (int) len.toLong());
                     stack.push(arr2);
@@ -388,9 +399,14 @@ public class ISBPL {
                     ISBPLObject a = stack.pop();
                     if(a.type.equals(getType("array")))
                         stack.push(a);
-                    else if(a.object instanceof ISBPLObject[])
-                        stack.push(new ISBPLObject(getType("array"), a.object));
-                    else
+                    else if(a.object instanceof ISBPLObject[]) {
+                        ISBPLObject[] o = (ISBPLObject[]) a.object;
+                        ISBPLObject it = new ISBPLObject(getType("array"), a.object);
+                        for(int i = 0; i < o.length; i++) {
+                            o[i].usedBy(it);
+                        }
+                        stack.push(it);
+                    } else
                         typeError(a.type.name, "array");
                 };
                 break;
@@ -1079,7 +1095,13 @@ public class ISBPL {
                     String s = toJavaString(str);
                     Object var = new Object();
                     addFunction(t, s, (stack1) -> stack1.push(t.varget(stack1.pop()).getOrDefault(var, getNullObject())));
-                    addFunction(t, "=" + s, (stack1) -> t.varget(stack1.pop()).put(var, stack1.pop()));
+                    addFunction(t, "=" + s, (stack1) -> {
+                        ISBPLObject o = stack1.pop();
+                        ISBPLObject p = stack1.pop();
+                        p.usedBy(o);
+                        p = t.varget(o).put(var, p);
+                        if(p != null) p.unusedBy(o);
+                    });
                 };
                 break;
             case "defsuper":
@@ -1090,6 +1112,7 @@ public class ISBPL {
                     otherType.checkType(getType("int"));
                     ISBPLType t = types.get((int) type.object);
                     ISBPLType s = types.get((int) otherType.object);
+                    s.usedBy(t);
                     t.superTypes.add(s);
                 };
                 break;
@@ -1595,11 +1618,11 @@ public class ISBPL {
     }
     
     // These will die as soon as std creates the real types and any types created before these are replaced become invalid.
-    static final ISBPLType defaultTypeNull = new ISBPLType("null", -4);
-    static final ISBPLType defaultTypeInt = new ISBPLType("int", -3);
-    static final ISBPLType defaultTypeChar = new ISBPLType("char", -2);
-    static final ISBPLType defaultTypeString = new ISBPLType("string", -1);
-    static {
+    final ISBPLType defaultTypeNull = new ISBPLType("null", -4);
+    final ISBPLType defaultTypeInt = new ISBPLType("int", -3);
+    final ISBPLType defaultTypeChar = new ISBPLType("char", -2);
+    final ISBPLType defaultTypeString = new ISBPLType("string", -1);
+    {
         defaultTypeNull.addUse();
         defaultTypeNull.addUse();
         defaultTypeInt.addUse();
@@ -1681,20 +1704,40 @@ public class ISBPL {
                             // We need to dump things immediately.
                             ISBPL.gErrorStream.println("!!! ISBPL WORD PARSER ERROR !!!");
                             ISBPL.gErrorStream.println("This is most likely due to a garbage collector malfunction.");
-                            ISBPL.gErrorStream.println("Stack: " + stack);
                             ISBPL.gErrorStream.println("LastWords: " + lastWords);
                             ISBPL.gErrorStream.println("FileStack: " + fileStack);
+                            ISBPL.gErrorStream.println("Stack: " + stack);
+                            System.exit(1);
                         }
-                        ISBPLType type = stack.peek().type;
-                        Queue<ISBPLType> types = new LinkedList<>();
-                        types.add(type);
-                        while (!types.isEmpty()) {
-                            type = types.poll();
-                            types.addAll(type.superTypes);
-                            if(type.methods.containsKey(word)) {
-                                type.methods.get(word).call(stack);
-                                continue nextWord;
+                        try {
+                            ISBPLType type = stack.peek().type;
+                            if(type == null) {
+                                throw new NullPointerException("type of initial is null");
                             }
+                            Queue<ISBPLType> types = new LinkedList<>();
+                            types.add(type);
+                            while (!types.isEmpty()) {
+                                type = types.poll();
+                                if(type == null) {
+                                    throw new NullPointerException("type is null");
+                                }
+                                if(type.superTypes == null) {
+                                    throw new NullPointerException("type was already garbage-collected");
+                                }
+                                types.addAll(type.superTypes);
+                                if(type.methods.containsKey(word)) {
+                                    type.methods.get(word).call(stack);
+                                    continue nextWord;
+                                }
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace(ISBPL.gErrorStream);
+                            ISBPL.gErrorStream.println("!!! ISBPL WORD PARSER ERROR !!!");
+                            ISBPL.gErrorStream.println("This is most likely due to a garbage collector malfunction.");
+                            ISBPL.gErrorStream.println("LastWords: " + lastWords);
+                            ISBPL.gErrorStream.println("FileStack: " + fileStack);
+                            ISBPL.gErrorStream.println("Stack: " + stack);
+                            System.exit(1);
                         }
                     }
                     ISBPLCallable func = frameStack.get().peek().resolve(word);
@@ -2759,14 +2802,12 @@ class ISBPLFrame implements ISBPLUsable {
 
     public void useless() {
         context = null;
-        parent = null;
         if(map != null)
             map.clear();
         map = null;
         if(variables != null)
             variables.clear();
         variables = null;
-        name = null;
     }
     
     public ISBPLCallable resolve(String name) {
