@@ -150,6 +150,14 @@ def TYPE_ARRAY construct array {
         } this foreach
         s
     }
+    aget {
+        with idx this ;
+        this idx aget
+    }
+    aput {
+        with item idx this ;
+        this idx item aput
+    }
 } =TYPE_ARRAY
 def Array TYPE_ARRAY =Array
 def TYPE_STRING construct string array {

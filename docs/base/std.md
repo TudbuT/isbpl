@@ -647,12 +647,6 @@
     -
 
 
-## >TYPE_SHADOW
-
-    -
-
-### Methods
-
 ## >TYPE_INT
 
     -
@@ -668,36 +662,6 @@
 
     -
 
-
-## >TYPE_BYTE
-
-    -
-
-### Methods
-
-## >TYPE_FUNCTION
-
-    -
-
-### Methods
-
-## >TYPE_FLOAT
-
-    -
-
-### Methods
-
-## >TYPE_NULL
-
-    -
-
-### Methods
-
-## >TYPE_LONG
-
-    -
-
-### Methods
 
 ## >TYPE_STRING
 
@@ -740,7 +704,17 @@
     -
 
 
+#### `aput ::: -> `
+
+    -
+
+
 #### `stackTraceToString ::: -> `
+
+    -
+
+
+#### `aget ::: -> `
 
     -
 
@@ -783,7 +757,17 @@
     -
 
 
+#### `aput ::: -> `
+
+    -
+
+
 #### `stackTraceToString ::: -> `
+
+    -
+
+
+#### `aget ::: -> `
 
     -
 
