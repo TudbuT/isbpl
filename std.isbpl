@@ -122,6 +122,8 @@ def Error construct error {
     }
 } =Error
 
+def __aput_native &aput =__aput_native
+
 def TYPE_ARRAY construct array {
     ;
     construct {
@@ -150,11 +152,11 @@ def TYPE_ARRAY construct array {
         } this foreach
         s
     }
-    aget {
+    ? {
         with idx this ;
         this idx aget
     }
-    aput {
+    =? {
         with item idx this ;
         this idx item aput
     }
