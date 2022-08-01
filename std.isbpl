@@ -122,6 +122,8 @@ def Error construct error {
     }
 } =Error
 
+def __aput_native &aput =__aput_native
+
 def TYPE_ARRAY construct array {
     ;
     construct {
@@ -149,6 +151,14 @@ def TYPE_ARRAY construct array {
             ind " " strconcat =ind
         } this foreach
         s
+    }
+    ? {
+        with idx this ;
+        this idx aget
+    }
+    =? {
+        with item idx this ;
+        this idx item aput
     }
 } =TYPE_ARRAY
 def Array TYPE_ARRAY =Array

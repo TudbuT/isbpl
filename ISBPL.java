@@ -1978,7 +1978,6 @@ public class ISBPL {
     }
     
     private static String readFile(File f) throws IOException {
-        //noinspection resource
         FileInputStream fis = new FileInputStream(f);
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         byte[] currentBytes = new byte[4096];
@@ -1986,6 +1985,7 @@ public class ISBPL {
         while ((len = fis.read(currentBytes)) > 0) {
             bytes.write(currentBytes, 0, len);
         }
+        fis.close();
         return bytes.toString();
     }
     

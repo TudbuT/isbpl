@@ -712,9 +712,19 @@ over type definitions, to string processing.
     Iterates through this array and calls the callable with the object (NOT the index).
 
 
+#### `aput ::: item idx -> `
+
+    Puts an item into the array
+
+
 #### `stackTraceToString ::: -> string`
 
     Converts this array to a stack trace string. Only use on compatible arrays!
+
+
+#### `aget ::: idx -> item`
+
+    Gets an item from the array
 
 
 #### `construct ::: length -> array`
