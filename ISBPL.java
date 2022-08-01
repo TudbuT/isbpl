@@ -1490,6 +1490,7 @@ public class ISBPL {
             }
             o.type = getType("array");
             object = isbplArray;
+            isbplArray.usedBy(o);
         }
         o.object = object;
         return o;
@@ -2197,34 +2198,42 @@ interface ISBPLUsable {
     default void usedBy(ISBPLUsable other) {
         setUses(getUses() + 1);
         other.addChild(this);
+        System.out.println("USE " + this + " used by " + other);
     }
     default void unusedBy(ISBPLUsable other) {
         if(!other.isUseless())
-            if(other.removeChild(this))
+            if(other.removeChild(this)) {
                 removeUse();
+                System.out.println("UNU " + this + " UNused by " + other);
+            }
     }
     default void addUse() {
-        setUses(getUses() + 1);
+        synchronized(this) {
+            setUses(getUses() + 1);
+        }
     }
     default void removeUse() {
-        if(isUseless()) {
-            return;
-        }
-        setUses(getUses() - 1);
-        if(getUses() <= 0) {
-            // Now useless, delete.
-            if(ISBPL.debug) {
-                ISBPL.gErrorStream.println("Garbage collecting " + this);
+        synchronized(this) {
+            if(isUseless()) {
+                return;
             }
-            ISBPLFastList<ISBPLUsable> usables = getChildren();
-            ISBPLUsable[] arr = usables.toArray();
-            for(int i = 0; i < arr.length; i++) {
-                arr[i].unusedBy(this);
+            setUses(getUses() - 1);
+            if(getUses() <= 0) {
+                // Now useless, delete.
+                //if(ISBPL.debug) {
+                    ISBPL.gErrorStream.println("Garbage collecting " + this);
+                //}
+                ISBPLFastList<ISBPLUsable> usables = getChildren();
+                ISBPLUsable[] arr = usables.toArray();
+                for(int i = 0; i < arr.length; i++) {
+                    arr[i].unusedBy(this);
+                    System.out.println(arr[i]);
+                }
+                useless();
+                uses.remove(this);
+                children.remove(this);
+                ISBPL.requestGC();
             }
-            useless();
-            uses.remove(this);
-            children.remove(this);
-            ISBPL.requestGC();
         }
     }
 
@@ -2368,7 +2377,7 @@ class ISBPLArray implements ISBPLUsable {
     }
 
     public String toString() {
-        StringBuilder s = new StringBuilder("[");
+        StringBuilder s = new StringBuilder("![");
         for(int i = 0; i < length; i++) {
             s.append(backend[i]);
             if(i != length - 1) {
@@ -2419,9 +2428,17 @@ class ISBPLObject implements ISBPLUsable {
     }
 
     public void useless() {
+        if(type.name.equals("array")) {
+            new RuntimeException("removed array debug print").printStackTrace();
+            System.out.println(this);
+            System.out.println(type.vars.get(this));
+            System.out.println(this.hashCode());
+        }
+        /*
         type.vars.remove(this);
         object = null;
         type = null;
+        */
     }
     
     public boolean isTruthy() {
@@ -2965,11 +2982,11 @@ class ISBPLStack<T extends ISBPLUsable> extends Stack<T> implements ISBPLUsable 
     final ISBPLFastList<T> toBeMarked = new ISBPLFastList<>(3);
 
     @Override
-    public T push(T t) {
+    public synchronized T push(T t) {
         if(t == null)
             new IllegalArgumentException("item is null").printStackTrace();
         if(t.isUseless()) {
-            throw new IllegalStateException("item was garbage-collected (" + t + ")");
+            throw new IllegalStateException("garbage collected item was pushed to stack (" + t + ")");
         }
         if(t instanceof ISBPLObject && ((ISBPLObject) t).type == null) {
             throw new IllegalStateException("item was garbage-collected (" + t + ") but was not marked");
@@ -2979,7 +2996,7 @@ class ISBPLStack<T extends ISBPLUsable> extends Stack<T> implements ISBPLUsable 
     }
 
     @Override
-    public T peek() {
+    public synchronized T peek() {
         T t = super.peek();
         if(t.isUseless()) {
             throw new IllegalStateException("item was garbage-collected (" + t + ") WHILE ON STACK!");
@@ -2988,7 +3005,7 @@ class ISBPLStack<T extends ISBPLUsable> extends Stack<T> implements ISBPLUsable 
     }
 
     @Override
-    public T pop() {
+    public synchronized T pop() {
         T t = super.pop();
         toBeMarked.add(t);
         if(t.isUseless()) {
@@ -2997,11 +3014,11 @@ class ISBPLStack<T extends ISBPLUsable> extends Stack<T> implements ISBPLUsable 
         return t;
     }
 
-    public void drop() {
+    public synchronized void drop() {
         super.pop().unusedBy(this);
     }
 
-    public void update() {
+    public synchronized void update() {
         while(!toBeMarked.isEmpty()) {
             toBeMarked.get(0).unusedBy(this);
             toBeMarked.remove(0);
