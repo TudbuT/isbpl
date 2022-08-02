@@ -2485,7 +2485,7 @@ class ISBPLFrame {
     public ISBPL context;
     public ISBPLFrame parent;
     public HashMap<String, ISBPLCallable> map = new HashMap<>();
-    public HashMap<Object, ISBPLObject> variables = new HashMap<>();
+    public HashMap<String, ISBPLObject> variables = new HashMap<>();
     public String name;
     
     public ISBPLFrame(String name, ISBPL context) {
@@ -2518,10 +2518,9 @@ class ISBPLFrame {
     }
 
     public void define(String name, ISBPLObject value) {
-        Object var = new Object();
-        variables.put(var, value);
-        add(name, (stack) -> stack.push(variables.get(var)));
-        add("=" + name, (stack) -> variables.put(var, stack.pop()));
+        variables.put(name, value);
+        add(name, (stack) -> stack.push(variables.get(name)));
+        add("=" + name, (stack) -> variables.put(name, stack.pop()));
     }
     
     public HashMap<String, ISBPLCallable> all() {
@@ -2530,3 +2529,5 @@ class ISBPLFrame {
         return r;
     }
 }
+
+public interface 
