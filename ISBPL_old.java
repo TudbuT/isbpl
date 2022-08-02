@@ -2530,4 +2530,4 @@ class ISBPLFrame {
     }
 }
 
-public interface 
+public interface
