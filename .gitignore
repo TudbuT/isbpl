@@ -3,3 +3,6 @@ test*.isbpl
 *.jar
 *.bf.isbpl
 rust-interpreter
+.idea
+*.iml
+out
