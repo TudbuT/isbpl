@@ -18,7 +18,7 @@ is the same as
 ```
 or
 ```isbpl
-( ( ( 2 1 * ) 1 + ) print )
+(((2 1 *) 1 +) print)
 ```
 in both languages, this will print 3.
 
