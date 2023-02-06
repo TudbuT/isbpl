@@ -593,3 +593,12 @@ func astartswith {
         match alen 
     asub match eq
 }
+
+func times {
+    with callable amount ;
+    def i 0 =i
+    callable [ while { i amount lt } {
+        i
+        i 1 + =i
+    } ] foreach
+}
