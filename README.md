@@ -3,6 +3,8 @@ Improved Stack-Based Programming Language
 
 Incomplete, not currently compilable, only interpretable.
 
+ISBPL is now obsolete. Try [SPL](https://github.com/tudbut/spl) instead.
+
 Stuff: [TudbuT/isbpl-random-stuff](https://github.com/TudbuT/isbpl-random-stuff)
 
 ---
